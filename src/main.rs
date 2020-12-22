@@ -1,4 +1,7 @@
-use futures::{Future, future::{BoxFuture, FutureExt}};
+use futures::{
+    future::{BoxFuture, FutureExt},
+    Future,
+};
 use hyper::{body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use scraper::{Html, Selector};
@@ -6,10 +9,12 @@ use tokio::task;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-     // I hope this is the right way to do it
-    let client = Box::leak( Box::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new())));
+    // I hope this is the right way to do it
+    let client = Box::leak(Box::new(
+        Client::builder().build::<_, hyper::Body>(HttpsConnector::new()),
+    ));
     let ilias_tree = load_ilias(
-        "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui"
+        "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
             .to_string(),
         "Rechnernetze".to_string(),
         client,
@@ -20,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn request_il_page(
-    uri: String,
+    uri: &str,
     client: &Client<HttpsConnector<HttpConnector>>,
 ) -> Result<Html, Box<dyn std::error::Error + Send + Sync>> {
     let req = Request::builder()
@@ -49,13 +54,13 @@ async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
-
-
-static CONTAINERS: Selector = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
-
-async fn get_child_pages(uri: String, client: &Client<HttpsConnector<HttpConnector>>) -> Vec<(String, String)>{
+async fn get_child_pages(
+    uri: &str,
+    client: &Client<HttpsConnector<HttpConnector>>,
+) -> Vec<(String, String)> {
+    let containers = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
     let html = request_il_page(uri, client).await.unwrap();
-    let elements = html.select(&CONTAINERS);
+    let elements = html.select(&containers);
     let mut element_infos = vec![];
     for element in elements {
         element_infos.push((
@@ -64,18 +69,25 @@ async fn get_child_pages(uri: String, client: &Client<HttpsConnector<HttpConnect
         ))
     }
     element_infos
-    
 }
 
 #[derive(Debug)]
 enum IlNodeType {
     Forum,
     Folder,
-    File
+    DirectLink,
+    File,
 }
 
-fn get_il_node_type(uri: &str) -> IlNodeType{
-    return IlNodeType::Folder
+fn get_il_node_type(uri: &str) -> Option<IlNodeType> {
+    let cmd = uri.split("&").find_map(|urlpiece| urlpiece.strip_prefix("cmd="));
+    match cmd {
+        Some("view") => Some(IlNodeType::Folder),
+        Some("showThreads") => Some(IlNodeType::Forum),
+        Some("calldirectlink") => Some(IlNodeType::DirectLink),
+        Some(_) => None,
+        None => if uri.contains("goto.php") { Some(IlNodeType::File) } else { None }
+    }
 }
 
 #[derive(Debug)]
@@ -83,66 +95,58 @@ struct IlNode {
     title: String,
     children: Option<Vec<IlNode>>,
     uri: String,
-    path: String,  // disc path
-    sync: bool,    // should this node be synced 
+    sync: bool,   // should this node be synced
     breed: IlNodeType,
+    id: u16,
 }
 
 fn load_ilias(
     uri: String,
     title: String,
-    path: String,
     client: &'static Client<HttpsConnector<HttpConnector>>,
-) -> tokio::task::JoinHandle<IlNode> {
+) -> tokio::task::JoinHandle<Option<IlNode>> {
     task::spawn(async move {
-        
-        let node_type = get_il_node_type(&uri);
-
-        let mut node = match node_type {
-            IlNodeType::Forum => {
-                IlNode{
-                    title,
-                    children: None,
-                    path: path + '/' + title,
-                    sync: false,
-                    breed: IlNodeType::Forum,
-                    uri
+        if let Some(node_type) = get_il_node_type(&uri){
+            let mut node = IlNode {
+                title,
+                children: None,
+                sync: false,
+                breed: IlNodeType::File,
+                uri: uri.clone(),
+                id: 0
+            };
+            match node_type {
+                IlNodeType::Forum => {
+                    node.breed = IlNodeType::Forum;
                 }
-            }
-            IlNodeType::Folder => {
-                let child_elements = get_child_pages(uri, client).await;
-                // create children
-                let mut handles = vec![];
-                for element in child_elements {
-                    handles.push(load_ilias(element.0, element.1, &client));
+                IlNodeType::Folder => {
+                    node.breed = IlNodeType::Folder;
+                    let child_elements = get_child_pages(&uri, client).await;
+                    // create children
+                    let mut handles = vec![];
+                    for element in child_elements {
+                        handles.push(load_ilias(element.0, element.1, &client));
+                    }
+                    // load children and add them to the node
+                    let mut children = vec![];
+                    for handle in handles {
+                        if let Ok( Some(child)) = handle.await {
+                            children.push(child);
+                        }
+                    }
+                    node.children = Some(children);
                 }
-
-                // load children and add them to the node
-                let mut children = vec![];
-                for handle in handles {
-                    children.push(handle.await.unwrap());
+                IlNodeType::File => {
+                    node.breed = IlNodeType::File;
+                    node.sync = true;
                 }
-                IlNode{
-                    title,
-                    children,
-                    path: path + '/' + title,
-                    sync: false,
-                    breed: IlNodeType::Folder,
-                    uri
+                IlNodeType::DirectLink => {
+                    node.breed = IlNodeType::DirectLink;
                 }
-            }
-            IlNodeType::File => {
-                let endung = "pdf";  //TODO: change that
-                IlNode{
-                    title,
-                    children: None,
-                    path: path + '/' + title + endung,
-                    sync: true,
-                    breed: IlNodeType::File,
-                    uri
-                }
-            }
-        };
-        node
+            };
+            Some(node)
+        } else {
+            None
+        }
     })
 }
