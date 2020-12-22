@@ -6,11 +6,15 @@ use tokio::task;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+     // I hope this is the right way to do it
+    let client = Box::leak( Box::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new())));
     let ilias_tree = load_ilias(
         "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui"
             .to_string(),
         "Rechnernetze".to_string(),
-    ).await?;
+        client,
+    )
+    .await?;
     println!("{:#?}", ilias_tree);
     Ok(())
 }
@@ -45,18 +49,20 @@ async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
-
 #[derive(Debug)]
-struct IlNode{
+struct IlNode {
     title: String,
     children: Option<Vec<IlNode>>,
 }
 
-fn load_ilias(uri: String, title: String) -> tokio::task::JoinHandle<IlNode> {
+fn load_ilias(
+    uri: String,
+    title: String,
+    client: &'static Client<HttpsConnector<HttpConnector>>,
+) -> tokio::task::JoinHandle<IlNode> {
     task::spawn(async move {
         let elements = {
-            let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new()); //move this out
-            let html = request_il_page(uri, &client).await.unwrap();
+            let html = request_il_page(uri, client).await.unwrap();
             let containers =
                 Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
             let elements = html.select(&containers);
@@ -69,25 +75,25 @@ fn load_ilias(uri: String, title: String) -> tokio::task::JoinHandle<IlNode> {
             }
             element_infos
         };
-        
+
         if elements.len() == 0 {
-            return IlNode{
+            return IlNode {
                 title: title,
-                children: None
-            }
+                children: None,
+            };
         }
 
         let mut handles = vec![];
         for element in elements {
-            handles.push(load_ilias(element.0, element.1));
+            handles.push(load_ilias(element.0, element.1, &client));
         }
 
-        let mut node = IlNode{
+        let mut node = IlNode {
             title: title,
-            children: None
+            children: None,
         };
         let mut children = vec![];
-        for handle in handles{
+        for handle in handles {
             children.push(handle.await.unwrap());
         }
         node.children = Some(children);
