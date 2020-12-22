@@ -1,4 +1,4 @@
-use futures::future::{BoxFuture, FutureExt};
+use futures::{Future, future::{BoxFuture, FutureExt}};
 use hyper::{body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use scraper::{Html, Selector};
@@ -49,54 +49,100 @@ async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
+
+
+static CONTAINERS: Selector = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
+
+async fn get_child_pages(uri: String, client: &Client<HttpsConnector<HttpConnector>>) -> Vec<(String, String)>{
+    let html = request_il_page(uri, client).await.unwrap();
+    let elements = html.select(&CONTAINERS);
+    let mut element_infos = vec![];
+    for element in elements {
+        element_infos.push((
+            element.value().attr("href").unwrap().to_string(),
+            element.inner_html(),
+        ))
+    }
+    element_infos
+    
+}
+
+#[derive(Debug)]
+enum IlNodeType {
+    Forum,
+    Folder,
+    File
+}
+
+fn get_il_node_type(uri: &str) -> IlNodeType{
+    return IlNodeType::Folder
+}
+
 #[derive(Debug)]
 struct IlNode {
     title: String,
     children: Option<Vec<IlNode>>,
+    uri: String,
+    path: String,  // disc path
+    sync: bool,    // should this node be synced 
+    breed: IlNodeType,
 }
 
 fn load_ilias(
     uri: String,
     title: String,
+    path: String,
     client: &'static Client<HttpsConnector<HttpConnector>>,
 ) -> tokio::task::JoinHandle<IlNode> {
     task::spawn(async move {
-        let elements = {
-            let html = request_il_page(uri, client).await.unwrap();
-            let containers =
-                Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
-            let elements = html.select(&containers);
-            let mut element_infos = vec![];
-            for element in elements {
-                element_infos.push((
-                    element.value().attr("href").unwrap().to_string(),
-                    element.inner_html(),
-                ))
+        
+        let node_type = get_il_node_type(&uri);
+
+        let mut node = match node_type {
+            IlNodeType::Forum => {
+                IlNode{
+                    title,
+                    children: None,
+                    path: path + '/' + title,
+                    sync: false,
+                    breed: IlNodeType::Forum,
+                    uri
+                }
             }
-            element_infos
+            IlNodeType::Folder => {
+                let child_elements = get_child_pages(uri, client).await;
+                // create children
+                let mut handles = vec![];
+                for element in child_elements {
+                    handles.push(load_ilias(element.0, element.1, &client));
+                }
+
+                // load children and add them to the node
+                let mut children = vec![];
+                for handle in handles {
+                    children.push(handle.await.unwrap());
+                }
+                IlNode{
+                    title,
+                    children,
+                    path: path + '/' + title,
+                    sync: false,
+                    breed: IlNodeType::Folder,
+                    uri
+                }
+            }
+            IlNodeType::File => {
+                let endung = "pdf";  //TODO: change that
+                IlNode{
+                    title,
+                    children: None,
+                    path: path + '/' + title + endung,
+                    sync: true,
+                    breed: IlNodeType::File,
+                    uri
+                }
+            }
         };
-
-        if elements.len() == 0 {
-            return IlNode {
-                title: title,
-                children: None,
-            };
-        }
-
-        let mut handles = vec![];
-        for element in elements {
-            handles.push(load_ilias(element.0, element.1, &client));
-        }
-
-        let mut node = IlNode {
-            title: title,
-            children: None,
-        };
-        let mut children = vec![];
-        for handle in handles {
-            children.push(handle.await.unwrap());
-        }
-        node.children = Some(children);
         node
     })
 }
