@@ -45,28 +45,4 @@ async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
-fn print_structure(uri: String, indent: i8) -> BoxFuture<'static, ()> {
-    async move {
-        let elements = {
-            let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new());
-            let html = request_il_page(uri, &client).await.unwrap();
-            let containers =
-                Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
-            let elements = html.select(&containers);
-            let mut element_infos = vec![];
-            for element in elements {
-                element_infos.push((
-                    element.value().attr("href").unwrap().to_string(),
-                    element.inner_html(),
-                ))
-            }
-            element_infos
-        };
 
-        for element in elements {
-            println!("{}{:?}", " ".repeat(indent as usize), &element.1);
-            print_structure(element.0, indent + 4).await;
-        }
-    }
-    .boxed()
-}
