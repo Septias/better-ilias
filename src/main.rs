@@ -2,16 +2,16 @@ use futures::future::{BoxFuture, FutureExt};
 use hyper::{body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use scraper::{Html, Selector};
+use tokio::task;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    print_structure(
+    let ilias_tree = load_ilias(
         "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui"
             .to_string(),
-        0,
-    )
-    .boxed()
-    .await;
+        "Rechnernetze".to_string(),
+    ).await?;
+    println!("{:#?}", ilias_tree);
     Ok(())
 }
 
@@ -46,3 +46,51 @@ async fn request_il_page(
 }
 
 
+#[derive(Debug)]
+struct IlNode{
+    title: String,
+    children: Option<Vec<IlNode>>,
+}
+
+fn load_ilias(uri: String, title: String) -> tokio::task::JoinHandle<IlNode> {
+    task::spawn(async move {
+        let elements = {
+            let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new()); //move this out
+            let html = request_il_page(uri, &client).await.unwrap();
+            let containers =
+                Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
+            let elements = html.select(&containers);
+            let mut element_infos = vec![];
+            for element in elements {
+                element_infos.push((
+                    element.value().attr("href").unwrap().to_string(),
+                    element.inner_html(),
+                ))
+            }
+            element_infos
+        };
+        
+        if elements.len() == 0 {
+            return IlNode{
+                title: title,
+                children: None
+            }
+        }
+
+        let mut handles = vec![];
+        for element in elements {
+            handles.push(load_ilias(element.0, element.1));
+        }
+
+        let mut node = IlNode{
+            title: title,
+            children: None
+        };
+        let mut children = vec![];
+        for handle in handles{
+            children.push(handle.await.unwrap());
+        }
+        node.children = Some(children);
+        node
+    })
+}
