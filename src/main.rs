@@ -3,12 +3,12 @@ use hyper_tls::HttpsConnector;
 use log::{error, info};
 use ron::{
     de::from_reader,
-    ser::{to_string_pretty, to_writer_pretty, PrettyConfig},
+    ser::{to_string_pretty, PrettyConfig},
 };
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write};
-use tokio::task;
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
+use tokio::{fs::create_dir, task};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Client::builder().build::<_, hyper::Body>(HttpsConnector::new()),
     ));
 
-    let ilias_tree: IlNode = if let Some(iliasTree) = match File::open("structure.ron") {
+    let ilias_tree: IlNode = if let Some(ilias_tree) = match File::open("structure.ron") {
         Ok(save) => {
             if let Ok(ilias_tree) = from_reader(save) {
                 Some(ilias_tree)
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Err(_) => None,
     } {
         info!("loaded ilias_tree from file");
-        iliasTree
+        ilias_tree
     } else {
         info!("fetching ilias_tree");
         let mut ilias_tree = load_ilias(
@@ -53,8 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
         ilias_tree
     };
-
-    //println!("{:#?}", ilias_tree);
+    
+    sync(ilias_tree, PathBuf::new()).await;
+    println!("{:?}", ilias_tree);
     Ok(())
 }
 
@@ -67,6 +68,27 @@ fn set_ids(node: &mut IlNode, id: &mut u16) {
         }
     }
 }
+
+
+fn sync(node: &'static IlNode, mut path: PathBuf) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        match node.breed {
+            IlNodeType::Forum => {}
+            IlNodeType::Folder => {
+                path.push(&node.title);
+                create_dir(&path);
+                if let Some(children) = &node.children {
+                    for child in children {
+                        sync(child, path.clone());
+                    }
+                }
+            }
+            IlNodeType::DirectLink => {}
+            IlNodeType::File => {}
+        }
+    })
+}
+
 
 async fn request_il_page(
     uri: &str,
@@ -150,7 +172,6 @@ struct IlNode {
     sync: bool, // should this node be synced
     breed: IlNodeType,
     children: Option<Vec<IlNode>>,
-    
 }
 
 fn load_ilias(
