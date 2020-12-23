@@ -1,27 +1,71 @@
-use futures::{
-    future::{BoxFuture, FutureExt},
-    Future,
-};
 use hyper::{body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
+use log::{error, info};
+use ron::{
+    de::from_reader,
+    ser::{to_string_pretty, to_writer_pretty, PrettyConfig},
+};
 use scraper::{Html, Selector};
+use serde::{Deserialize, Serialize};
+use std::{fs::File, io::Write};
 use tokio::task;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    env_logger::init();
     // I hope this is the right way to do it
     let client = Box::leak(Box::new(
         Client::builder().build::<_, hyper::Body>(HttpsConnector::new()),
     ));
-    let ilias_tree = load_ilias(
-        "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
-            .to_string(),
-        "Rechnernetze".to_string(),
-        client,
-    )
-    .await?;
-    println!("{:#?}", ilias_tree);
+
+    let ilias_tree: IlNode = if let Some(iliasTree) = match File::open("structure.ron") {
+        Ok(save) => {
+            if let Ok(ilias_tree) = from_reader(save) {
+                Some(ilias_tree)
+            } else {
+                None
+            }
+        }
+        Err(_) => None,
+    } {
+        info!("loaded ilias_tree from file");
+        iliasTree
+    } else {
+        info!("fetching ilias_tree");
+        let mut ilias_tree = load_ilias(
+            "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
+                .to_string(),
+            "Rechnernetze".to_string(),
+            client,
+        )
+        .await?.expect("couldn't fetch Ilias-tree");
+
+        set_ids(&mut ilias_tree, &mut 0);
+
+        let pretty = PrettyConfig::new()
+            .with_separate_tuple_members(true)
+            .with_enumerate_arrays(true);
+        let mut writer = File::create("structure.ron").expect("unable to create save-file");
+        let s = to_string_pretty(&ilias_tree, pretty).unwrap();
+        let write_result = writer.write_all(s.as_bytes());
+        if let Err(_) = write_result {
+            error!("Can't save structure.ron");
+        }
+        ilias_tree
+    };
+
+    //println!("{:#?}", ilias_tree);
     Ok(())
+}
+
+fn set_ids(node: &mut IlNode, id: &mut u16) {
+    node.id = id.clone();
+    *id += 1;
+    if let Some(children) = node.children.as_mut() {
+        for child in children.iter_mut() {
+            set_ids(child, id);
+        }
+    }
 }
 
 async fn request_il_page(
@@ -71,7 +115,7 @@ async fn get_child_pages(
     element_infos
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 enum IlNodeType {
     Forum,
     Folder,
@@ -80,24 +124,33 @@ enum IlNodeType {
 }
 
 fn get_il_node_type(uri: &str) -> Option<IlNodeType> {
-    let cmd = uri.split("&").find_map(|urlpiece| urlpiece.strip_prefix("cmd="));
+    let cmd = uri
+        .split("&")
+        .find_map(|urlpiece| urlpiece.strip_prefix("cmd="));
     match cmd {
         Some("view") => Some(IlNodeType::Folder),
         Some("showThreads") => Some(IlNodeType::Forum),
         Some("calldirectlink") => Some(IlNodeType::DirectLink),
         Some(_) => None,
-        None => if uri.contains("goto.php") { Some(IlNodeType::File) } else { None }
+        None => {
+            if uri.contains("goto.php") {
+                Some(IlNodeType::File)
+            } else {
+                None
+            }
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 struct IlNode {
     title: String,
-    children: Option<Vec<IlNode>>,
-    uri: String,
-    sync: bool,   // should this node be synced
-    breed: IlNodeType,
     id: u16,
+    uri: String,
+    sync: bool, // should this node be synced
+    breed: IlNodeType,
+    children: Option<Vec<IlNode>>,
+    
 }
 
 fn load_ilias(
@@ -106,14 +159,14 @@ fn load_ilias(
     client: &'static Client<HttpsConnector<HttpConnector>>,
 ) -> tokio::task::JoinHandle<Option<IlNode>> {
     task::spawn(async move {
-        if let Some(node_type) = get_il_node_type(&uri){
+        if let Some(node_type) = get_il_node_type(&uri) {
             let mut node = IlNode {
                 title,
                 children: None,
                 sync: false,
                 breed: IlNodeType::File,
                 uri: uri.clone(),
-                id: 0
+                id: 0,
             };
             match node_type {
                 IlNodeType::Forum => {
@@ -130,7 +183,7 @@ fn load_ilias(
                     // load children and add them to the node
                     let mut children = vec![];
                     for handle in handles {
-                        if let Ok( Some(child)) = handle.await {
+                        if let Ok(Some(child)) = handle.await {
                             children.push(child);
                         }
                     }
