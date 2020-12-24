@@ -8,20 +8,18 @@ use ron::{
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::{
+    sync::Arc,
     fs::File,
     io::{ErrorKind, Write},
-    path::PathBuf,
-    sync::Arc,
+    path::PathBuf
 };
-use tokio::{fs::create_dir, task};
+use tokio::{fs::create_dir, task::{self, JoinHandle}};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::init();
-    // I hope this is the right way to do it
-    let client = Box::leak(Box::new(
-        Client::builder().build::<_, hyper::Body>(HttpsConnector::new()),
-    ));
+
+    let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
 
     let ilias_tree: IlNode = if let Some(ilias_tree) = match File::open("structure.ron") {
         Ok(save) => {
@@ -41,12 +39,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
                 .to_string(),
             "Rechnernetze".to_string(),
-            client,
+            client.clone(),
         )
         .await?.expect("couldn't fetch Ilias-tree");
 
         set_ids(&mut ilias_tree, &mut 0);
 
+        // save to file
         let pretty = PrettyConfig::new()
             .with_separate_tuple_members(true)
             .with_enumerate_arrays(true);
@@ -60,7 +59,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
     // don't fkn drop ilias pls
     let ilias_tree = Box::leak(Box::new(ilias_tree));
-    sync(ilias_tree, PathBuf::new(), client).await?;
+    
+    // sync ilias_tree to local files
+    sync(ilias_tree, PathBuf::new(), client.clone()).await?;
     Ok(())
 }
 
@@ -77,14 +78,14 @@ fn set_ids(node: &mut IlNode, id: &mut u16) {
 fn sync(
     node: &'static IlNode,
     mut path: PathBuf,
-    client: &'static Client<HttpsConnector<HttpConnector>>,
+    client: Arc<Client<HttpsConnector<HttpConnector>>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut handles = vec![];
         match node.breed {
             IlNodeType::Folder => {
                 if node.sync {
-                    for element in get_child_pages(&node.uri, client)
+                    for element in get_child_pages(&node.uri, client.clone())
                         .await
                         .iter()
                         .filter(|elem| get_il_node_type(&elem.uri).unwrap() == IlNodeType::File)
@@ -109,7 +110,7 @@ fn sync(
                         .iter()
                         .filter(|child| child.breed == IlNodeType::Folder)
                     {
-                        handles.push(sync(child, path.clone(), client));
+                        handles.push(sync(child, path.clone(), client.clone()));
                     }
                 }
             }
@@ -123,7 +124,7 @@ fn sync(
 
 async fn request_il_page(
     uri: &str,
-    client: &Client<HttpsConnector<HttpConnector>>,
+    client: Arc<Client<HttpsConnector<HttpConnector>>>,
 ) -> Result<Html, Box<dyn std::error::Error + Send + Sync>> {
     let req = Request::builder()
         .method(Method::GET)
@@ -150,7 +151,7 @@ struct PageInfo {
 
 async fn get_child_pages(
     uri: &str,
-    client: &Client<HttpsConnector<HttpConnector>>,
+    client: Arc<Client<HttpsConnector<HttpConnector>>>,
 ) -> Vec<PageInfo> {
 
     let containers = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
@@ -206,8 +207,8 @@ struct IlNode {
 fn load_ilias(
     uri: String,
     title: String,
-    client: &'static Client<HttpsConnector<HttpConnector>>,
-) -> tokio::task::JoinHandle<Option<IlNode>> {
+    client: Arc<Client<HttpsConnector<HttpConnector>>>,
+) -> JoinHandle<Option<IlNode>> {
     task::spawn(async move {
         if let Some(node_type) = get_il_node_type(&uri) {
             let mut node = IlNode {
@@ -224,11 +225,11 @@ fn load_ilias(
                 }
                 IlNodeType::Folder => {
                     node.breed = IlNodeType::Folder;
-                    let child_elements = get_child_pages(&uri, client).await;
+                    let child_elements = get_child_pages(&uri, client.clone()).await;
                     // create children
                     let mut handles = vec![];
                     for element in child_elements {
-                        handles.push(load_ilias(element.uri, element.title, &client));
+                        handles.push(load_ilias(element.uri, element.title, client.clone()));
                     }
                     // load children and add them to the node
                     let mut children = vec![];
