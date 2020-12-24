@@ -1,4 +1,4 @@
-use hyper::{body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request};
+use hyper::{Body, Client, Method, Request, StatusCode, body::HttpBody as _, client::HttpConnector};
 use hyper_tls::HttpsConnector;
 use log::{error, info};
 use ron::{
@@ -87,7 +87,7 @@ fn sync(
                     for element in get_child_pages(&node.uri, client)
                         .await
                         .iter()
-                        .filter(|elem| get_il_node_type(&elem.0).unwrap() == IlNodeType::File)
+                        .filter(|elem| get_il_node_type(&elem.uri).unwrap() == IlNodeType::File)
                     {
                         
                     }
@@ -131,9 +131,10 @@ async fn request_il_page(
         .header("cookie", "PHPSESSID=qrb2h55lg6hh17cn9ckmnpiid0")
         .body(Body::empty())
         .unwrap();
-
     let mut resp = client.request(req).await?;
-    info!("status: {}", resp.status());
+    if resp.status() != StatusCode::OK{
+        error!("{} Problem with requestion ilias-page \" {}\"", resp.status(), uri);
+    }
     let mut bytes = vec![];
     while let Some(chunk) = resp.body_mut().data().await {
         let chunk = chunk?;
@@ -142,19 +143,25 @@ async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
+struct PageInfo {
+    title: String,
+    uri: String,
+}
+
 async fn get_child_pages(
     uri: &str,
     client: &Client<HttpsConnector<HttpConnector>>,
-) -> Vec<(String, String)> {
+) -> Vec<PageInfo> {
+
     let containers = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
     let html = request_il_page(uri, client).await.unwrap();
     let elements = html.select(&containers);
     let mut element_infos = vec![];
     for element in elements {
-        element_infos.push((
-            element.value().attr("href").unwrap().to_string(),
-            element.inner_html().replace("/", " "),
-        ))
+        element_infos.push(PageInfo{
+            uri: element.value().attr("href").unwrap().to_string(),
+            title: element.inner_html().replace("/", " "),
+        })
     }
     element_infos
 }
@@ -221,7 +228,7 @@ fn load_ilias(
                     // create children
                     let mut handles = vec![];
                     for element in child_elements {
-                        handles.push(load_ilias(element.0, element.1, &client));
+                        handles.push(load_ilias(element.uri, element.title, &client));
                     }
                     // load children and add them to the node
                     let mut children = vec![];
