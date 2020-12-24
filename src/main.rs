@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
     // don't fkn drop ilias pls
     let ilias_tree = Box::leak(Box::new(ilias_tree));
-    sync(ilias_tree, PathBuf::new()).await?;
+    sync(ilias_tree, PathBuf::new(), client).await?;
     Ok(())
 }
 
@@ -74,12 +74,25 @@ fn set_ids(node: &mut IlNode, id: &mut u16) {
     }
 }
 
-fn sync(node: &'static IlNode, mut path: PathBuf) -> tokio::task::JoinHandle<()> {
+fn sync(
+    node: &'static IlNode,
+    mut path: PathBuf,
+    client: &'static Client<HttpsConnector<HttpConnector>>,
+) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut handles = vec![];
         match node.breed {
-            IlNodeType::Forum => {}
             IlNodeType::Folder => {
+                if node.sync {
+                    for element in get_child_pages(&node.uri, client)
+                        .await
+                        .iter()
+                        .filter(|elem| get_il_node_type(&elem.0).unwrap() == IlNodeType::File)
+                    {
+                        
+                    }
+                }
+
                 path.push(&node.title);
                 match create_dir(&path).await {
                     Ok(_) => {
@@ -92,13 +105,15 @@ fn sync(node: &'static IlNode, mut path: PathBuf) -> tokio::task::JoinHandle<()>
                 }
 
                 if let Some(children) = &node.children {
-                    for child in children {
-                        handles.push(sync(child, path.clone()));
+                    for child in children
+                        .iter()
+                        .filter(|child| child.breed == IlNodeType::Folder)
+                    {
+                        handles.push(sync(child, path.clone(), client));
                     }
                 }
             }
-            IlNodeType::DirectLink => {}
-            IlNodeType::File => {}
+            _ => (),
         }
         for handle in handles {
             handle.await.unwrap();
@@ -144,7 +159,7 @@ async fn get_child_pages(
     element_infos
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 enum IlNodeType {
     Forum,
     Folder,
@@ -212,6 +227,9 @@ fn load_ilias(
                     let mut children = vec![];
                     for handle in handles {
                         if let Ok(Some(child)) = handle.await {
+                            if &child.breed == &IlNodeType::File {
+                                node.sync = true
+                            }
                             children.push(child);
                         }
                     }
@@ -219,7 +237,6 @@ fn load_ilias(
                 }
                 IlNodeType::File => {
                     node.breed = IlNodeType::File;
-                    node.sync = true;
                 }
                 IlNodeType::DirectLink => {
                     node.breed = IlNodeType::DirectLink;
