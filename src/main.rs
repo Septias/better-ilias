@@ -1,3 +1,4 @@
+use chrono::{DateTime, TimeZone, Utc};
 use hyper::{Body, Client, Method, Request, StatusCode, body::HttpBody as _, client::HttpConnector};
 use hyper_tls::HttpsConnector;
 use log::{error, info};
@@ -7,12 +8,7 @@ use ron::{
 };
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
-use std::{
-    sync::Arc,
-    fs::File,
-    io::{ErrorKind, Write},
-    path::PathBuf
-};
+use std::{collections::HashMap, fs::File, io::{ErrorKind, Write}, path::PathBuf, sync::Arc, unimplemented};
 use tokio::{fs::create_dir, task::{self, JoinHandle}};
 
 #[tokio::main]
@@ -35,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ilias_tree
     } else {
         info!("fetching ilias_tree");
-        let mut ilias_tree = load_ilias(
+        let mut ilias_tree = get_ilias_tree(
             "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
                 .to_string(),
             "Rechnernetze".to_string(),
@@ -75,6 +71,40 @@ fn set_ids(node: &mut IlNode, id: &mut u16) {
     }
 }
 
+struct Config();
+
+impl Config{
+    fn get_token() -> &'static str {
+        "cl0bpgc6d4fkhonr8ok84tqvm3"
+    }
+}
+
+struct FileWatcher {
+    files: HashMap<String, DateTime<Utc>>
+}
+
+impl FileWatcher {
+    async fn add_file(&mut self, uri: &str, last_changed: &str, path: &str, file_ending: &str){
+        self.files.insert(uri.to_string(), Self::date_from_str(last_changed));
+        FileWatcher::download_file(uri, path, file_ending).await;
+    }
+    async fn download_file(uri: &str, path: &str, file_ending: &str){
+
+    }
+
+    fn date_from_str(date_time_str: &str) -> DateTime<Utc>{
+        Utc.ymd(2020, 12, 1).and_hms(4, 20, 00)
+    }
+    fn process(&self, uri: &str, date: &str){
+        let last_changed = self.files.get(uri);
+        match last_changed {
+            Some(DateTime) => {}
+            None => {}
+        }
+        unimplemented!();
+    }
+}
+
 fn sync(
     node: &'static IlNode,
     mut path: PathBuf,
@@ -85,13 +115,7 @@ fn sync(
         match node.breed {
             IlNodeType::Folder => {
                 if node.sync {
-                    for element in get_child_pages(&node.uri, client.clone())
-                        .await
-                        .iter()
-                        .filter(|elem| get_il_node_type(&elem.uri).unwrap() == IlNodeType::File)
-                    {
-                        
-                    }
+                    
                 }
 
                 path.push(&node.title);
@@ -129,7 +153,7 @@ async fn request_il_page(
     let req = Request::builder()
         .method(Method::GET)
         .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
-        .header("cookie", "PHPSESSID=qrb2h55lg6hh17cn9ckmnpiid0")
+        .header("cookie", "PHPSESSID=".to_owned() + Config::get_token())
         .body(Body::empty())
         .unwrap();
     let mut resp = client.request(req).await?;
@@ -204,7 +228,7 @@ struct IlNode {
     children: Option<Vec<IlNode>>,
 }
 
-fn load_ilias(
+fn get_ilias_tree(
     uri: String,
     title: String,
     client: Arc<Client<HttpsConnector<HttpConnector>>>,
@@ -229,7 +253,7 @@ fn load_ilias(
                     // create children
                     let mut handles = vec![];
                     for element in child_elements {
-                        handles.push(load_ilias(element.uri, element.title, client.clone()));
+                        handles.push(get_ilias_tree(element.uri, element.title, client.clone()));
                     }
                     // load children and add them to the node
                     let mut children = vec![];
