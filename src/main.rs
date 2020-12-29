@@ -1,4 +1,5 @@
 use chrono::{DateTime, TimeZone, Utc};
+use futures::future::join_all;
 use hyper::{Body, Client, Method, Request, StatusCode, body::HttpBody as _, client::HttpConnector};
 use hyper_tls::HttpsConnector;
 use log::{error, info};
@@ -8,7 +9,7 @@ use ron::{
 };
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File, io::{ErrorKind, Write}, path::PathBuf, sync::Arc, unimplemented};
+use std::{collections::HashMap, fs::File, io::{ErrorKind, Write}, path::PathBuf, sync::{Arc, Mutex}, unimplemented};
 use tokio::{fs::create_dir, task::{self, JoinHandle}};
 
 #[tokio::main]
@@ -32,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     } else {
         info!("fetching ilias_tree");
         let mut ilias_tree = get_ilias_tree(
-            "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
+                "ilias.php?ref_id=1843349&cmd=view&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui"//"ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui&cmd=view"
                 .to_string(),
             "Rechnernetze".to_string(),
             client.clone(),
@@ -55,9 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
     // don't fkn drop ilias pls
     let ilias_tree = Box::leak(Box::new(ilias_tree));
+
+    let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
     
     // sync ilias_tree to local files
-    sync(ilias_tree, PathBuf::new(), client.clone()).await?;
+    sync(ilias_tree, PathBuf::new(), client.clone(), file_watcher).await?;
     Ok(())
 }
 
@@ -75,50 +78,92 @@ struct Config();
 
 impl Config{
     fn get_token() -> &'static str {
-        "cl0bpgc6d4fkhonr8ok84tqvm3"
+        "rtu7t6p8v9o4ucov79i0vv0rhi"
     }
 }
-
 struct FileWatcher {
-    files: HashMap<String, DateTime<Utc>>
+    files: HashMap<String, FileInfo>
 }
 
 impl FileWatcher {
-    async fn add_file(&mut self, uri: &str, last_changed: &str, path: &str, file_ending: &str){
-        self.files.insert(uri.to_string(), Self::date_from_str(last_changed));
-        FileWatcher::download_file(uri, path, file_ending).await;
+    fn add_file(&mut self, file_info: FileInfo) -> JoinHandle<()> {
+        let join_handle = FileWatcher::download_file(&file_info.uri, &file_info.path, &file_info.ending);
+        self.files.insert(file_info.uri.to_string(), file_info);
+        join_handle
     }
-    async fn download_file(uri: &str, path: &str, file_ending: &str){
-
+    fn download_file(uri: &str, path: &PathBuf, ending: &str) -> JoinHandle<()> {
+        tokio::spawn( async move {
+            unimplemented!()
+        })
     }
-
-    fn date_from_str(date_time_str: &str) -> DateTime<Utc>{
-        Utc.ymd(2020, 12, 1).and_hms(4, 20, 00)
-    }
-    fn process(&self, uri: &str, date: &str){
-        let last_changed = self.files.get(uri);
-        match last_changed {
-            Some(DateTime) => {}
-            None => {}
+    fn new() -> Self {
+        return {
+            FileWatcher{
+                files: HashMap::new()
+            }
         }
-        unimplemented!();
     }
+    fn process(&mut self, file_info: FileInfo) -> Option<JoinHandle<()>>{
+        let last_changed = self.files.get(&file_info.uri);
+
+        match last_changed {
+            Some(file) => None,
+            None => Some(self.add_file(file_info))
+        }
+    }
+}
+
+struct FileInfo{
+    ending: String,
+    uri: String,
+    date: DateTime<Utc>,
+    path: PathBuf,
+}
+
+
+fn get_file_info(html: Arc<Html>, path: PathBuf, uri: &str) -> Vec<FileInfo>{
+    let containers = Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
+    let pdf_selector = Selector::parse(".").unwrap();
+    let elements = html.select(&containers);
+    let mut file_infos = vec![];
+    for element in elements {
+        let mut path = path.clone();
+        path.push( element.inner_html().replace("/", " "));
+        let el_type = element.select(&pdf_selector).last().unwrap().inner_html();
+        file_infos.push(FileInfo{
+            uri: element.value().attr("href").unwrap().to_owned(),
+            path: path,
+            date: Utc::now(),
+            ending: el_type
+        })
+    }
+    file_infos
 }
 
 fn sync(
     node: &'static IlNode,
     mut path: PathBuf,
     client: Arc<Client<HttpsConnector<HttpConnector>>>,
+    file_watcher: Arc<Mutex<FileWatcher>>
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
-        let mut handles = vec![];
+        let mut sync_handles = vec![];
+        let mut file_handles = vec![];
         match node.breed {
             IlNodeType::Folder => {
+                path.push(&node.title);
                 if node.sync {
                     
+                        let html = Arc::new(request_il_page(&node.uri, client.clone()).await.unwrap());
+                        let mut file_watcher = file_watcher.lock().unwrap();
+             
+                        for file in get_file_info(html.clone(), path.clone(), &node.uri){
+                            if let Some(handle) = file_watcher.process(file){
+                                file_handles.push(handle);
+                            }
+                        }
+                    
                 }
-
-                path.push(&node.title);
                 match create_dir(&path).await {
                     Ok(_) => {
                         info!("created Folder {}", &node.title)
@@ -134,15 +179,14 @@ fn sync(
                         .iter()
                         .filter(|child| child.breed == IlNodeType::Folder)
                     {
-                        handles.push(sync(child, path.clone(), client.clone()));
+                        sync_handles.push(sync(child, path.clone(), client.clone(), file_watcher.clone()));
                     }
                 }
             }
             _ => (),
         }
-        for handle in handles {
-            handle.await.unwrap();
-        }
+        join_all(sync_handles).await;
+        join_all(file_handles).await;
     })
 }
 
