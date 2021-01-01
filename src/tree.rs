@@ -1,31 +1,20 @@
-use chrono::{DateTime, Utc};
-use futures::future::join_all;
-use hyper::{
-    body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request, StatusCode,
-};
+use hyper::{client::HttpConnector, Client};
 use hyper_tls::HttpsConnector;
 use log::{error, info};
 use ron::{
     de::from_bytes,
-    from_str,
     ser::{to_string_pretty, PrettyConfig},
 };
-use scraper::Selector;
+
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    io::ErrorKind,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-    unimplemented,
-};
+use std::sync::Arc;
 use tokio::{
-    fs::{create_dir, File},
+    fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
     task::{self, JoinHandle},
 };
 
-use crate::{helpers::request_il_page, sync::FileWatcher};
+use crate::sync::FileWatcher;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IlNode {
@@ -67,11 +56,11 @@ fn get_il_node_type(uri: &str) -> Option<IlNodeType> {
 pub fn create_ilias_tree(
     uri: String,
     title: String,
-    client: Arc<Client<HttpsConnector<HttpConnector>>>,
-    file_watcher: Arc<FileWatcher>,
+    _client: Arc<Client<HttpsConnector<HttpConnector>>>,
+    _file_watcher: Arc<FileWatcher>,
 ) -> JoinHandle<IlNode> {
     task::spawn(async move {
-        let mut node = IlNode {
+        let node = IlNode {
             title,
             children: None,
             sync: false,
@@ -79,30 +68,6 @@ pub fn create_ilias_tree(
             uri: uri.clone(),
             id: 0,
         };
-
-        let containers =
-            Selector::parse(".ilContainerListItemOuter .il_ContainerItemTitle a").unwrap();
-        let html = request_il_page(&uri, client).await.unwrap();
-        let elements = html.select(&containers);
-
-        // create children
-        let mut handles = vec![];
-        for element in elements {
-            handles.push(create_ilias_tree(
-                element.uri,
-                element.title,
-                client.clone(),
-                file_watcher.clone(),
-            ));
-        }
-        // load children and add them to the node
-        let mut children = vec![];
-        for handle in handles {
-            if let Ok(child) = handle.await {
-                children.push(child);
-            }
-        }
-        node.children = Some(children);
         node
     })
 }

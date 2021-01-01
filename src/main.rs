@@ -1,24 +1,7 @@
-use chrono::{DateTime, Utc};
-use futures::future::join_all;
-use hyper::{
-    body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request, StatusCode,
-};
+use hyper::Client;
 use hyper_tls::HttpsConnector;
-use log::{error, info};
-use ron::{
-    de::from_bytes,
-    from_str,
-    ser::{to_string_pretty, PrettyConfig},
-};
-use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Arc};
 use sync::FileWatcher;
-use tokio::{
-    fs::{create_dir, File},
-    io::{AsyncReadExt, AsyncWriteExt},
-    task::{self, JoinHandle},
-};
 use tree::get_or_create_ilias_tree;
 
 mod config;
@@ -26,7 +9,7 @@ mod helpers;
 mod sync;
 mod tree;
 
-use tree::IlNode;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

@@ -1,33 +1,12 @@
-use chrono::{DateTime, Utc};
-use futures::future::join_all;
 use hyper::{
     body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request, StatusCode,
 };
 use hyper_tls::HttpsConnector;
-use log::{error, info};
-use ron::{
-    de::from_bytes,
-    from_str,
-    ser::{to_string_pretty, PrettyConfig},
-};
-use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    io::ErrorKind,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-    unimplemented,
-};
-use tokio::{
-    fs::{create_dir, File},
-    io::{AsyncReadExt, AsyncWriteExt},
-    task::{self, JoinHandle},
-};
+use log::{error};
+use scraper::{Html};
+use std::sync::Arc;
 
-use config::Config;
-
-use crate::config;
+use crate::config::Config;
 
 pub async fn request_il_page(
     uri: &str,

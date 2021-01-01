@@ -1,17 +1,8 @@
 use chrono::{DateTime, Utc};
 use futures::future::join_all;
-use hyper::{
-    body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request, StatusCode,
-};
+use hyper::{ client::HttpConnector, Client};
 use hyper_tls::HttpsConnector;
 use log::{error, info};
-use ron::{
-    de::from_bytes,
-    from_str,
-    ser::{to_string_pretty, PrettyConfig},
-};
-use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::ErrorKind,
@@ -20,9 +11,8 @@ use std::{
     unimplemented,
 };
 use tokio::{
-    fs::{create_dir, File},
-    io::{AsyncReadExt, AsyncWriteExt},
-    task::{self, JoinHandle},
+    fs::{create_dir},
+    task::JoinHandle,
 };
 
 use crate::tree::{IlNode, IlNodeType};
@@ -79,7 +69,7 @@ impl FileWatcher {
             .unwrap()
             .insert(file_info.uri.to_string(), file_info);
     }
-    fn download_file(uri: &str, path: &PathBuf, ending: &str) -> JoinHandle<()> {
+    fn download_file(_uri: &str, _path: &PathBuf, _ending: &str) -> JoinHandle<()> {
         tokio::spawn(async move { unimplemented!() })
     }
     pub fn new() -> Self {
