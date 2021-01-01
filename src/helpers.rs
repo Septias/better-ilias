@@ -35,19 +35,20 @@ pub async fn request_il_page(
 }
 
 pub fn get_node(tree: &IlNode, id: u16) -> Option<&IlNode> {
+    if tree.id == id {
+        return Some(tree)
+    }
     if let Some(children) = &tree.children {
-        let max = children.last().unwrap().id;
-        if id > max {
-            for child in children {
-                if let Some(node) = get_node(&child, id) {
-                    return Some(&node);
-                }
+        let mut children_iter = children.iter();
+        let mut smallest = children_iter.next().unwrap().id;
+        for (index, child) in children_iter.enumerate(){
+            if child.id < id {
+                smallest = index as u16
+            } else {
+                break;
             }
-            None
-        } else {
-            let index = id - children.first().unwrap().id ;
-            Some(&children[index as usize])
         }
+        get_node(&children[smallest as usize], id) 
     } else {
         None
     }
