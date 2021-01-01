@@ -41,6 +41,7 @@ dependencies = [
  "futures",
  "hyper",
  "hyper-tls",
+ "lazy_static",
  "log",
  "ron",
  "scraper",
