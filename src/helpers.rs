@@ -33,3 +33,22 @@ pub async fn request_il_page(
     }
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
+
+pub fn get_node(tree: &IlNode, id: u16) -> Option<&IlNode> {
+    if let Some(children) = &tree.children {
+        let max = children.last().unwrap().id;
+        if id > max {
+            for child in children {
+                if let Some(node) = get_node(&child, id) {
+                    return Some(&node);
+                }
+            }
+            None
+        } else {
+            let index = id - children.first().unwrap().id ;
+            Some(&children[index as usize])
+        }
+    } else {
+        None
+    }
+}
