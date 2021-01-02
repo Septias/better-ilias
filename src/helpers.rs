@@ -1,12 +1,11 @@
+use crate::{IdSize, config::Config, tree::IlNode};
 use hyper::{
     body::HttpBody as _, client::HttpConnector, Body, Client, Method, Request, StatusCode,
 };
 use hyper_tls::HttpsConnector;
-use log::{error};
-use scraper::{Html};
+use log::error;
+use scraper::Html;
 use std::sync::Arc;
-
-use crate::config::Config;
 
 pub async fn request_il_page(
     uri: &str,
@@ -34,16 +33,16 @@ pub async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
-pub fn get_node(tree: &IlNode, id: u16) -> Option<&IlNode> {
+pub fn get_node(tree: &IlNode, id: IdSize) -> Option<&IlNode> {
     if tree.id == id {
         return Some(tree)
     }
     if let Some(children) = &tree.children {
-        let mut children_iter = children.iter();
-        let mut smallest = children_iter.next().unwrap().id;
-        for (index, child) in children_iter.enumerate(){
-            if child.id < id {
-                smallest = index as u16
+        //let mut children_iter = children.iter();
+        let mut smallest = 0;//children_iter.next().unwrap().id;
+        for (index, child) in children.iter().enumerate(){
+            if child.id <= id {
+                smallest = index as IdSize
             } else {
                 break;
             }

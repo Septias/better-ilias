@@ -1,7 +1,7 @@
-pub struct Config();
+pub struct Config;
 
 impl Config {
     pub fn get_token() -> &'static str {
-        "ffv5qmc43tviq8o0941f67cj4b"
+        "907kn0j65o35em06vv0c8p71rj"
     }
 }
