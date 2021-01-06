@@ -7,7 +7,7 @@ use ron::{
 };
 use scraper::{Selector};
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::{Arc, Mutex}};
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -21,7 +21,7 @@ use crate::{FileWatcher, IdSize, helpers::request_il_page, sync::add_to_file_wat
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SyncInfo{
     pub path: PathBuf,
-    pub version: u32
+    pub version: u16
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -31,7 +31,7 @@ pub struct IlNode {
     pub uri: String,
     pub sync: Option<SyncInfo>, // should this node be synced
     pub breed: IlNodeType,
-    pub children: Option<Vec<IlNode>>,
+    pub children: Option<Vec<Arc<Mutex<IlNode>>>>,
     pub parent: u16
 }
 
@@ -49,6 +49,7 @@ pub fn get_il_node_type(uri: &str) -> Option<IlNodeType> {
         .find_map(|urlpiece| urlpiece.strip_prefix("cmd="));
     match cmd {
         Some("view") => Some(IlNodeType::Folder),
+        Some("jumpToSelectedItems") => Some(IlNodeType::Folder),
         Some("showThreads") => Some(IlNodeType::Forum),
         Some("calldirectlink") => Some(IlNodeType::DirectLink),
         Some(_) => None,
@@ -78,23 +79,23 @@ pub fn create_ilias_tree(
     title: String, 
     client: Arc<Client<HttpsConnector<HttpConnector>>>,
     path: PathBuf,
-) -> JoinHandle<IlNode> {
+) -> JoinHandle<Arc<Mutex<IlNode>>> {
     task::spawn(async move {
-        let mut cloned = path.clone();
-        cloned.push(&title);
-        let mut node = IlNode {
+        let mut path = path.clone();
+        path.push(&title);
+        let node = Arc::new(Mutex::new(IlNode {
             title,
             children: None,
             sync: Some(SyncInfo{
-                path: cloned,
+                path: path.clone(),
                 version: 0
             }),
             breed: IlNodeType::Folder,
             uri: uri.clone(),
             id: 0,
             parent: 0
-        };
-        
+        }));
+       
         let mut children = vec![];
         let folders = {
             
@@ -110,6 +111,7 @@ pub fn create_ilias_tree(
                     
                     let child_uri = element.value().attr("href").unwrap();
                     let title = element.inner_html().replace("/", " ");
+                    println!("{}", child_uri);
                     if let Some(node_type) = get_il_node_type(child_uri){
 
                         if &node_type == &IlNodeType::Folder{
@@ -118,8 +120,8 @@ pub fn create_ilias_tree(
                                 title
                             })
                         } else {
-                            let mut temp_path = path.clone();
-                            temp_path.push(&title);
+                            let mut path = path.clone();
+                            path.push(&title);
                             let mut node = IlNode{
                                 breed: node_type.clone(),
                                 uri: child_uri.to_string(),
@@ -131,12 +133,12 @@ pub fn create_ilias_tree(
                             };
                             if &node_type == &IlNodeType::File {
                                 node.sync = Some(SyncInfo{
-                                    path: temp_path,
+                                    path: path,
                                     version: 0
                                 });
                             }
 
-                            children.push(node)
+                            children.push(Arc::new(Mutex::new(node)));
                             
                         }
                     }
@@ -161,18 +163,20 @@ pub fn create_ilias_tree(
                 children.push(child);
             }
         }
-        node.children = Some(children);
+    
+        node.lock().unwrap().children = Some(children);
         node
     })
 }
 
-fn set_ids(node: &mut IlNode, id: &mut IdSize, parent: IdSize) {
+fn set_ids(node: Arc<Mutex<IlNode>>, id: &mut IdSize, parent: IdSize) {
+    let mut node = node.lock().unwrap();
     node.id = id.clone();
     node.parent = parent;
     *id += 1;
-    if let Some(children) = node.children.as_mut() {
-        for child in children.iter_mut() {
-            set_ids(child, id, node.id);
+    if let Some(children) = &node.children {
+        for child in children {
+            set_ids(child.clone(), id, node.id);
         }
     }
 }
@@ -180,13 +184,13 @@ fn set_ids(node: &mut IlNode, id: &mut IdSize, parent: IdSize) {
 pub async fn get_or_create_ilias_tree(
     client: Arc<Client<HttpsConnector<HttpConnector>>>,
     file_watcher: &mut FileWatcher
-) -> Result<IlNode, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Arc<Mutex<IlNode>>, Box<dyn std::error::Error + Send + Sync>> {
     if let Some(ilias_tree) = match File::open("structure.ron").await {
         Ok(mut save) => {
             let mut buffer = vec![];
             save.read_to_end(&mut buffer).await?;
             if let Ok(ilias_tree) = from_bytes(&buffer) {
-                Some(ilias_tree)
+                Some(Arc::new(Mutex::new(ilias_tree)))
             } else {
                 None
             }
@@ -197,25 +201,24 @@ pub async fn get_or_create_ilias_tree(
         Ok(ilias_tree)
     } else {
         info!("fetching ilias_tree");
-        let mut ilias_tree = create_ilias_tree(
-                "ilias.php?ref_id=1836117&cmdClass=ilrepositorygui&cmdNode=yj&baseClass=ilrepositorygui"
+        let ilias_tree = create_ilias_tree(
+                "ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems"
                 .to_string(),
-            "Rechnernetze".to_string(),
+            "Studium".to_string(),
             client,
-            PathBuf::from("Rechnernetze")
+            PathBuf::from("")
         ).await?;
 
-        set_ids(&mut ilias_tree, &mut 0, 0);
-        add_to_file_watcher(&ilias_tree, file_watcher, "Bischte Dumm".to_string());
+        set_ids(ilias_tree.clone(), &mut 0, 0);
+        add_to_file_watcher(&ilias_tree.clone().lock().unwrap(), file_watcher, "Bischte Dumm".to_string());
         
-        // save to file
         let pretty = PrettyConfig::new()
             .with_separate_tuple_members(true)
             .with_enumerate_arrays(true);
-        let mut writer = File::create("structure.ron")
+        let mut writer = File::create("staructure.ron")
             .await
             .expect("unable to create save-file");
-        let s = to_string_pretty(&ilias_tree, pretty).unwrap();
+        let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();
         let write_result = writer.write_all(s.as_bytes()).await;
         if let Err(_) = write_result {
             error!("Can't save structure.ron");

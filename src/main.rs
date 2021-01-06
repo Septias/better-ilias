@@ -22,14 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let ilias_tree = get_or_create_ilias_tree(client.clone(), &mut file_watcher).await?;
 
-    let ilias_tree = Box::leak(Box::new(ilias_tree));
-    info!("sync ilias to local files");
 
-    sync::sync(ilias_tree, client.clone()).await?;
+    info!("sync structure to local filessystem");
+
+    sync::sync(ilias_tree.clone(), client.clone()).await?;
 
     info!("sync files");
-    add_to_file_watcher(ilias_tree, &mut file_watcher, "Bischte Dumm".to_string());  // remove pub decl
-    //println!("files: {:#?}", file_watcher.files());
-    file_watcher.sync(&mut*ilias_tree, FileSelect::All, client.clone()).await?;
+    add_to_file_watcher(&ilias_tree.lock().unwrap(), &mut file_watcher, "Bischte Dumm".to_string()); //remove
+    file_watcher.sync(ilias_tree, FileSelect::All, client.clone()).await?;
     Ok(())
 }

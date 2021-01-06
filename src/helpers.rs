@@ -5,7 +5,7 @@ use hyper::{
 use hyper_tls::HttpsConnector;
 use log::error;
 use scraper::Html;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub async fn request_il_page(
     uri: &str,
@@ -33,21 +33,22 @@ pub async fn request_il_page(
     Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
 }
 
-pub fn get_node(tree: &IlNode, id: IdSize) -> Option<&IlNode> {
+pub fn get_node(node: Arc<Mutex<IlNode>>, id: IdSize) -> Option<Arc<Mutex<IlNode>>> {
+    let tree = node.lock().unwrap();
     if tree.id == id {
-        return Some(tree)
+        return Some(node.clone())
     }
     if let Some(children) = &tree.children {
         //let mut children_iter = children.iter();
         let mut smallest = 0;//children_iter.next().unwrap().id;
         for (index, child) in children.iter().enumerate(){
-            if child.id <= id {
+            if child.lock().unwrap().id <= id {
                 smallest = index as IdSize
             } else {
                 break;
             }
         }
-        get_node(&children[smallest as usize], id) 
+        get_node(children[smallest as usize].clone(), id) 
     } else {
         None
     }

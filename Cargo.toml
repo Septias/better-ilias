@@ -1,19 +1,19 @@
 [package]
-name = "better_ilias"
-version = "0.1.0"
 authors = ["Septias <39526136+Septias@users.noreply.github.com>"]
 edition = "2018"
+name = "better_ilias"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hyper = {version= "0.14.1", features=["client", "http1"]}
-hyper-tls ="0.5.0"
-tokio = { version = "1.0.1", features = ["full"] }
-scraper = "0.12.0"
-futures = "0.3.8"
-serde = "1.0.118"
-ron = "0.6.4"
-log = "0.4.11"
 env_logger = "0.8.2"
+futures = "0.3.8"
+hyper = {version = "0.14.1", features = ["client", "http1"]}
+hyper-tls = "0.5.0"
 lazy_static = "1.4.0"
+log = "0.4.11"
+ron = "0.6.4"
+scraper = "0.12.0"
+serde = {version = "1.0.118", features = ["rc"]}
+tokio = {version = "1.0.1", features = ["full"]}
