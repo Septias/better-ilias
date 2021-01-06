@@ -166,9 +166,8 @@ fn get_versions(elments: &Html) -> Vec<VersionInfo> {
     let mut versions = vec![];
     for container in elments.select(&CONTAINERS) {
         let element = container.select(&LINK).last().unwrap();
-        let uri = element.value().attr("href").unwrap();
         let title = element.inner_html().replace("/", " ");
-        if get_il_node_type(uri).unwrap() == IlNodeType::File {
+        if get_il_node_type(container).unwrap() == IlNodeType::File {
             versions.push(VersionInfo {
                 title,
                 version: get_version(&container) as u16

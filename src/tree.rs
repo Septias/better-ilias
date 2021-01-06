@@ -5,7 +5,7 @@ use ron::{
     de::from_bytes,
     ser::{to_string_pretty, PrettyConfig},
 };
-use scraper::{Selector};
+use scraper::{ElementRef, Selector};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 use tokio::{
@@ -43,25 +43,62 @@ pub enum IlNodeType {
     File,
 }
 
-pub fn get_il_node_type(uri: &str) -> Option<IlNodeType> {
-    let cmd = uri
-        .split("&")
-        .find_map(|urlpiece| urlpiece.strip_prefix("cmd="));
-    match cmd {
-        Some("view") => Some(IlNodeType::Folder),
-        Some("jumpToSelectedItems") => Some(IlNodeType::Folder),
-        Some("showThreads") => Some(IlNodeType::Forum),
-        Some("calldirectlink") => Some(IlNodeType::DirectLink),
-        Some(_) => None,
-        None => {
-            if uri.contains("goto.php") {
-                Some(IlNodeType::File)
-            } else {
-                None
-            }
-        }
+pub fn get_il_node_type(element: ElementRef) -> Option<IlNodeType> {
+   
+    let img = element.select(&IMAGE).last()?;
+    let img_src = img.value().attr("src")?;
+    
+   
+    const START_INDEX: usize = 32; // "./templates/default/images/icon_fold.svg" icon_ ends at 31
+    let end_index = START_INDEX + img_src[START_INDEX..].find(".svg")?;
+
+    match &img_src[START_INDEX..end_index] {
+        "fold" => Some(IlNodeType::Folder),
+        "crs" => Some(IlNodeType::Folder),
+        "frm" => Some(IlNodeType::Forum),
+        "webr" => Some(IlNodeType::DirectLink),
+        "file" => Some(IlNodeType::File),
+        _ => None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use scraper::{ElementRef, Html};
+    use super::{IlNodeType, get_il_node_type, Selector};
+    
+    fn get_element(folder: &Html)-> ElementRef<'_> {
+        let root_div_sel = Selector::parse(".ilCLI.ilObjListRow.row").unwrap();
+        folder.select(&root_div_sel).last().unwrap()
+    }
+    fn get_html(file: &str)-> Html {
+        let html: String = String::from_utf8_lossy(&std::fs::read("test_html/".to_string() + file).unwrap()).parse().unwrap();
+        Html::parse_fragment(&html)
+    }
+    #[test]
+    fn test_identify_folder(){
+        let html = get_html("folder.html");
+        let element = get_element(&html);
+        assert_eq!(get_il_node_type(element), Some(IlNodeType::Folder));
+    }
+    #[test]
+    fn test_identify_file(){
+        let html = get_html("file.html");
+        let element = get_element(&html);
+        assert_eq!(get_il_node_type(element), Some(IlNodeType::File));
+    }#[test]
+    fn test_identify_forum(){
+        let html = get_html("forum.html");
+        let element = get_element(&html);
+        assert_eq!(get_il_node_type(element), Some(IlNodeType::Forum));
+    }#[test]
+    fn test_identify_direct_link(){
+        let html = get_html("direct_link.html");
+        let element = get_element(&html);
+        assert_eq!(get_il_node_type(element), Some(IlNodeType::DirectLink));
+    }
+}
+
 
 struct FolderInfo{
     uri: String,
@@ -72,6 +109,7 @@ lazy_static!{
     pub static ref CONTAINERS: Selector = Selector::parse(".ilContainerListItemOuter").unwrap();
     pub static ref LINK: Selector = Selector::parse(".il_ContainerItemTitle > a").unwrap();
     pub static ref PROPERTY: Selector = Selector::parse(".il_ItemProperty").unwrap();
+    pub static ref IMAGE: Selector = Selector::parse(".ilListItemIcon").unwrap();
 }
 
 pub fn create_ilias_tree(
@@ -107,13 +145,10 @@ pub fn create_ilias_tree(
             // go through all possible folders
             for element in elements {
                 // if it has a link field it actually is a folder
-                if let Some(element) = element.select(&LINK).last() {
-                    
-                    let child_uri = element.value().attr("href").unwrap();
-                    let title = element.inner_html().replace("/", " ");
-                    println!("{}", child_uri);
-                    if let Some(node_type) = get_il_node_type(child_uri){
-
+                if let Some(node_type) = get_il_node_type(element){
+                    if let Some(link) = element.select(&LINK).last() {
+                        let child_uri = link.value().attr("href").unwrap();
+                        let title = link.inner_html().replace("/", " ");
                         if &node_type == &IlNodeType::Folder{
                             folders.push(FolderInfo {
                                 uri: child_uri.to_string(),
@@ -202,7 +237,7 @@ pub async fn get_or_create_ilias_tree(
     } else {
         info!("fetching ilias_tree");
         let ilias_tree = create_ilias_tree(
-                "ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems"
+                "ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToMemberships"
                 .to_string(),
             "Studium".to_string(),
             client,
@@ -215,7 +250,7 @@ pub async fn get_or_create_ilias_tree(
         let pretty = PrettyConfig::new()
             .with_separate_tuple_members(true)
             .with_enumerate_arrays(true);
-        let mut writer = File::create("staructure.ron")
+        let mut writer = File::create("structure.ron")
             .await
             .expect("unable to create save-file");
         let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();

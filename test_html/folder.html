@@ -1,0 +1,68 @@
+<div class="ilCLI ilObjListRow row">
+
+    <div class="ilContainerListItemOuter" data-list-item-id="lg_div_1843349_pref_1836117"
+        id="lg_div_1843349_pref_1836117">
+
+        <div class="ilContainerListItemIcon ">
+            <a
+                href="ilias.php?ref_id=1843349&amp;cmd=view&amp;cmdClass=ilrepositorygui&amp;cmdNode=yj&amp;baseClass=ilrepositorygui"><img
+                    alt="Symbol Ordner" title="Symbol Ordner" src="./templates/default/images/icon_fold.svg"
+                    class="ilListItemIcon"></a>
+        </div>
+        <div class="ilContainerListItemContent ">
+            <div class="il_ContainerListItem">
+                <div class="il_ContainerItemTitle form-inline">
+
+                    <h4 class="il_ContainerItemTitle"><a
+                            href="ilias.php?ref_id=1843349&amp;cmd=view&amp;cmdClass=ilrepositorygui&amp;cmdNode=yj&amp;baseClass=ilrepositorygui"
+                            class="il_ContainerItemTitle">Folien</a></h4>
+
+                </div>
+                <div style="float:right">
+
+                </div>
+
+                <div class="ilFloatRight">
+
+                    <div class="btn-group">
+                        <!-- Important: The next a-tag had a this.blur(); in the onclick event before. Please do not add it again, see bug #8723 -->
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                            data-container="body" id="ilAdvSelListAnchorText_act_1843349_pref_1836117">
+                            <span></span> <span class="sr-only">Aktionen</span><span class="caret"></span>
+                        </button>
+
+                        <ul class="dropdown-menu pull-right" role="menu"
+                            id="ilAdvSelListTable_act_1843349_pref_1836117">
+
+                            <li><img src="./templates/default/images/loader.svg" alt="loading"></li>
+
+                        </ul>
+
+                    </div>
+                    <script>
+                        il.AdvancedSelectionList.init['act_1843349_pref_1836117'] = function () {
+                            il.AdvancedSelectionList.add('act_1843349_pref_1836117', { "trigger_event": "click", "auto_hide": false, "anchor_id": "ilAdvSelListAnchorElement_act_1843349_pref_1836117", "asynch": true, "asynch_url": "ilias.php?ref_id=1836117&cmdClass=ilobjcoursegui&cmdrefid=1843349&cmd=getAsynchItemList&cmdNode=yj:mn&baseClass=ilrepositorygui&cmdMode=asynch", "toggle_el": "lg_div_1843349_pref_1836117", "toggle_class_on": "ilContainerListItemOuterHighlight" });
+
+
+                        };
+                        il.AdvancedSelectionList.init['act_1843349_pref_1836117']();
+
+
+                        $("#ilAdvSelListAnchorText_act_1843349_pref_1836117").click(function () {
+                            il.Util.ajaxReplaceInner('ilias.php?ref_id=1836117&cmdClass=ilobjcoursegui&cmdrefid=1843349&cmd=getAsynchItemList&cmdNode=yj:mn&baseClass=ilrepositorygui&cmdMode=asynch', 'ilAdvSelListTable_act_1843349_pref_1836117');
+                            $(this).unbind("click");
+                        });
+                    </script>
+
+                </div>
+
+                <div class="ilListItemSection il_Description">Folien der Vorlesung nach Kapiteln unterteilt</div>
+
+                <div style="clear:both;"></div>
+            </div>
+
+            <div style="clear:both;"></div>
+        </div>
+    </div>
+
+</div>
