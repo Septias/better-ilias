@@ -1,4 +1,4 @@
-This tool is still in pre-release so it only works with the approriat setup - which is nowhere documented.
+This tool is still in pre-release so it only works with the approriat setup - which is documented nowhere.
 
 # BettIlias
 
