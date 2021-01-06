@@ -165,13 +165,16 @@ struct VersionInfo {
 fn get_versions(elments: &Html) -> Vec<VersionInfo> {
     let mut versions = vec![];
     for container in elments.select(&CONTAINERS) {
-        let element = container.select(&LINK).last().unwrap();
-        let title = element.inner_html().replace("/", " ");
-        if get_il_node_type(container).unwrap() == IlNodeType::File {
-            versions.push(VersionInfo {
-                title,
-                version: get_version(&container) as u16
-            })
+        if let Some(node_type) = get_il_node_type(container) {
+            if let Some(link) = container.select(&LINK).last() {
+                let title = link.inner_html().replace("/", " ");
+                if (node_type) == IlNodeType::File {
+                    versions.push(VersionInfo {
+                        title,
+                        version: get_version(&container) as u16
+                    })
+                }
+            }
         }
     }
     versions
