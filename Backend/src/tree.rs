@@ -18,13 +18,13 @@ use lazy_static::lazy_static;
 use crate::{FileWatcher, IdSize, helpers::request_il_page, sync::add_to_file_watcher};
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SyncInfo{
     pub path: PathBuf,
     pub version: u16
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
     pub title: String,
     pub id: u16,
