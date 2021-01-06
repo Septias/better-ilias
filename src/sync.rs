@@ -1,19 +1,32 @@
 use futures::future::join_all;
-use hyper::{Body, Client, Method, Request, body::HttpBody, client::HttpConnector};
+use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use log::{error, info, warn};
 use scraper::{ElementRef, Html};
-use std::{collections::{HashMap, HashSet}, io::ErrorKind, path::PathBuf, sync::{Arc, Mutex}};
-use tokio::{fs::{File, create_dir}, io::AsyncWriteExt, task::{self, JoinHandle}};
+use std::{
+    collections::{HashMap, HashSet},
+    io::ErrorKind,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+use tokio::{
+    fs::{create_dir, File},
+    io::AsyncWriteExt,
+    task::{self, JoinHandle},
+};
 
-use crate::{IdSize, config::Config, helpers::{get_node, request_il_page}, tree::{get_il_node_type, IlNode, IlNodeType, CONTAINERS, LINK, PROPERTY}};
+use crate::{
+    config::Config,
+    helpers::{get_node, request_il_page},
+    tree::{get_il_node_type, IlNode, IlNodeType, CONTAINERS, LINK, PROPERTY},
+    IdSize,
+};
 
 pub fn sync(
     node: Arc<Mutex<IlNode>>,
     client: Arc<Client<HttpsConnector<HttpConnector>>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
-            
         let mut sync_handles = vec![];
         let mut file_handles = vec![];
         {
@@ -36,18 +49,18 @@ pub fn sync(
                 _ => (),
             };
         }
-    
+
         for file_handle in file_handles {
             match file_handle.await {
                 Ok(_) => {
-                    info!("created Folder ")//info!("created Folder {}", &node.title);
+                    info!("created Folder ") //info!("created Folder {}", &node.title);
                 }
                 Err(err) if err.kind() == ErrorKind::AlreadyExists => {}
-                Err(err) => {
+                Err(_err) => {
                     error!("couldn't create folder") //error!("couldn't create folder \"{}\" - {}", &node.title, err);
                 }
             }
-        };
+        }
         join_all(sync_handles).await;
     })
 }
@@ -65,7 +78,11 @@ impl FileWatcher {
         self.child_to_parent_uri.insert(id, parent_uri);
         self.files.push(id);
     }
-    fn download_file(uri: &str, path: &PathBuf, client: Arc<Client<HttpsConnector<HttpConnector>>>) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
+    fn download_file(
+        uri: &str,
+        path: &PathBuf,
+        client: Arc<Client<HttpsConnector<HttpConnector>>>,
+    ) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
         let req = Request::builder()
             .method(Method::GET)
             .uri(uri.to_string())
@@ -77,7 +94,7 @@ impl FileWatcher {
         tokio::spawn(async move {
             let mut resp = client.request(req).await?;
             let mut file = File::create(path).await?;
-            
+
             while let Some(chunk) = resp.body_mut().data().await {
                 let chunk = chunk?;
                 file.write_all(&chunk).await?;
@@ -93,22 +110,18 @@ impl FileWatcher {
         files: FileSelect,
         client: Arc<Client<HttpsConnector<HttpConnector>>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        
         let files = match files {
-            FileSelect::All => {
-                &self.files
-            }
-            FileSelect::Filtered(ref vec) => {
-                vec
-            }
+            FileSelect::All => &self.files,
+            FileSelect::Filtered(ref vec) => vec,
         };
         let mut to_request = HashSet::new();
         for file in files {
             to_request.insert(self.child_to_parent_uri.get(file).unwrap().clone());
         }
 
-       
-        let mut handles: Vec<JoinHandle<Result<Vec<VersionInfo>, Box<dyn std::error::Error + Send + Sync>>>> = vec![];
+        let mut handles: Vec<
+            JoinHandle<Result<Vec<VersionInfo>, Box<dyn std::error::Error + Send + Sync>>>,
+        > = vec![];
         for page in to_request {
             let client_clone = client.clone();
             handles.push(task::spawn(async move {
@@ -118,20 +131,26 @@ impl FileWatcher {
         }
 
         let mut download_handlers = vec![];
-        for handle in handles{
+        for handle in handles {
             let version_infos = handle.await??;
             for version_info in version_infos {
-                
-                let child_node = get_node(node_tree.clone(), *self.title_id_map.get(&version_info.title).unwrap()).unwrap();
+                let child_node = get_node(
+                    node_tree.clone(),
+                    *self.title_id_map.get(&version_info.title).unwrap(),
+                )
+                .unwrap();
                 let child_node = child_node.lock().unwrap();
                 if let Some(sync) = &child_node.sync {
-                    if &version_info.version > &sync.version{
+                    if &version_info.version > &sync.version {
                         if let Some(sync) = &child_node.sync {
-                            download_handlers.push(FileWatcher::download_file(&child_node.uri, &sync.path, client.clone()));
+                            download_handlers.push(FileWatcher::download_file(
+                                &child_node.uri,
+                                &sync.path,
+                                client.clone(),
+                            ));
                         } else {
                             warn!("No sync Info for file {}", child_node.title);
                         }
-                        
                     }
                 }
             }
@@ -143,7 +162,7 @@ impl FileWatcher {
     pub fn new() -> Self {
         return {
             FileWatcher {
-                files:Vec::new(),
+                files: Vec::new(),
                 title_id_map: HashMap::new(),
                 child_to_parent_uri: HashMap::new(),
             }
@@ -151,10 +170,9 @@ impl FileWatcher {
     }
 }
 
-pub enum FileSelect{
+pub enum FileSelect {
     All,
-    Filtered(Vec<IdSize>)
-    
+    Filtered(Vec<IdSize>),
 }
 
 struct VersionInfo {
@@ -171,7 +189,7 @@ fn get_versions(elments: &Html) -> Vec<VersionInfo> {
                 if (node_type) == IlNodeType::File {
                     versions.push(VersionInfo {
                         title,
-                        version: get_version(&container) as u16
+                        version: get_version(&container) as u16,
                     })
                 }
             }
@@ -184,13 +202,12 @@ fn get_version(element: &ElementRef) -> u32 {
     let inner_html = element.select(&PROPERTY).nth(2).unwrap().inner_html();
     let extracted = extract_version(&inner_html).unwrap_or(1);
     extracted
-    
 }
 
 fn extract_version(string: &str) -> Option<u32> {
     let start_index = string.find("Version: ")? + "Version: ".len();
     let end_index = start_index + string[start_index..].find("&")?;
-    
+
     Some(string[start_index..end_index].parse().ok()?)
 }
 
@@ -201,6 +218,6 @@ pub fn add_to_file_watcher(tree: &IlNode, file_watcher: &mut FileWatcher, parent
     if let Some(children) = &tree.children {
         for child in children {
             add_to_file_watcher(&child.lock().unwrap(), file_watcher, tree.uri.clone());
-        } 
+        }
     }
 }
