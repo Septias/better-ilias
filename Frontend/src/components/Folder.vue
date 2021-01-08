@@ -1,5 +1,6 @@
 <template >
   <svg
+    v-if="node.children"
     focusable="false"
     width="1em"
     height="1em"
@@ -38,9 +39,10 @@
 import { ref, defineComponent } from "vue";
 import File from "./File.vue";
 import DirectLink from "./DirectLink.vue";
+import Forum from "./Forum.vue";
 
 export default defineComponent({
-  components: { File, DirectLink },
+  components: { File, DirectLink, Forum },
   name: "Folder",
   props: {
     node: Object,

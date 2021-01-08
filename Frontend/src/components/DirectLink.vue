@@ -19,7 +19,7 @@
 
 <script>
 export default {
-  name: "MdiLightFile",
+  name: "DirectLink",
   props: {
     node: Object,
   },
