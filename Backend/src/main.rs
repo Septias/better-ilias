@@ -2,7 +2,7 @@
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use log::info;
-use rocket::State;
+use rocket::{Config, State, config::Environment};
 use rocket_contrib::json::Json;
 use std::sync::{Arc, Mutex};
 use sync::{FileSelect, FileWatcher};
@@ -16,7 +16,7 @@ mod tree;
 
 pub type IdSize = u16;
 
-#[get("/")]
+#[get("/api/node")]
 fn index(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {
     let node = node.lock().unwrap();
     Json(node.clone())
@@ -24,7 +24,7 @@ fn index(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {
 
 #[tokio::main]
 async fn main(){
-    env_logger::init();
+    //env_logger::init();
     let https = HttpsConnector::new();
     let client = Arc::new(Client::builder().build::<_, hyper::Body>(https));
 
@@ -41,6 +41,6 @@ async fn main(){
     /* file_watcher
         .sync(ilias_tree, FileSelect::All, client.clone())
         .await?;  */
-   
+    
     rocket::ignite().mount("/", routes![index]).manage(ilias_tree.clone()).launch();
 }
