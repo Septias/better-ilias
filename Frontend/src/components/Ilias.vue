@@ -1,6 +1,9 @@
 <template>
   <h1 class="text-5xl m-5">Better Ilias</h1>
-  <Folder class="ml-5" v-for="child in root_node.children" :node="child"></Folder>
+  <div v-for="child in root_node.children" class="ml-5 cursor-pointer">
+    <Folder :node="child"></Folder>
+  </div>
+  
 </template>
 
 <script lang="ts">
@@ -14,6 +17,7 @@ export default defineComponent({
   },
   async setup() {
     let resp = await axios.get("/api/node");
+    let data: IlNode = resp.data as IlNode
     let root_node = ref(resp.data);
     return { root_node };
   },
