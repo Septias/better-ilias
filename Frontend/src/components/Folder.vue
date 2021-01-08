@@ -1,22 +1,31 @@
 <template >
   <svg
-    v-if="node.children"
     focusable="false"
     width="1em"
     height="1em"
     viewBox="0 0 24 24"
     class="text-accent hover:text-white fill-current inline"
   >
-    <path
-      v-if="expanded"
-      d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
-      fill="currentColor"
-    ></path>
-    <path
+    <template v-if="node.children.length">
+      <path
+        v-if="expanded"
+        d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
+        fill="currentColor"
+      ></path>
+      <path
+        v-else
+        d="M8.593 18.157L14.25 12.5L8.593 6.843l-.707.707l4.95 4.95l-4.95 4.95l.707.707z"
+        fill="currentColor"
+      ></path>
+    </template>
+    <rect
       v-else
-      d="M8.593 18.157L14.25 12.5L8.593 6.843l-.707.707l4.95 4.95l-4.95 4.95l.707.707z"
-      fill="currentColor"
-    ></path>
+      x="9"
+      y="9"
+      width="5"
+      height="5"
+      style="fill: rgba(0, 0, 0, 0); stroke-width: 2; stroke: currentColor"
+    />
   </svg>
 
   <span

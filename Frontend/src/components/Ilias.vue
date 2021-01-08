@@ -18,7 +18,8 @@ export default defineComponent({
   async setup() {
     let resp = await axios.get("/api/node");
     let data: IlNode = resp.data as IlNode
-    let root_node = ref(resp.data);
+    console.log(data)
+    let root_node = ref(data);
     return { root_node };
   },
 });
