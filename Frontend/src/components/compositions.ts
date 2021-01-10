@@ -1,7 +1,7 @@
 import { computed, ref } from "vue"
 
 
-let edit_visibility = ref(true)
+let edit_visibility = ref(false)
 
 export function useVisibility() {
 

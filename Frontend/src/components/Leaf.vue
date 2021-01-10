@@ -3,8 +3,6 @@
     v-if="node.visible || edit_visibility"
     class="p-1 rounded-sm hover:bg-accent text-white"
     :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
-    @click.ctrl="hi"
-    @click.exact="handle_click"
   >
     <svg
       :class="color"
@@ -20,14 +18,15 @@
   </span>
 </template>
 
-<script>
+<script lang="ts">
 import { useVisibility } from "./compositions";
+import { IlNode } from "./types";
 
 export default {
   name: "File",
   emits: ["set_invisible", "set_visible"],
   props: {
-    node: Object,
+    node: Object as IlNode,
     index: Number,
     color: String,
   },
@@ -42,10 +41,8 @@ export default {
         }
       }
     }
-    function hi() {
-      console.log("hi");
-    }
-    return { edit_visibility, handle_click, hi };
+
+    return { edit_visibility, handle_click };
   },
 };
 </script>
