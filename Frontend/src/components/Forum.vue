@@ -1,4 +1,3 @@
-
 <template>
   <span class="p-1 rounded-sm hover:bg-accent bg-opacity-25">
     <svg

@@ -1,7 +1,12 @@
-
 <template>
-  <span class="p-1 rounded-sm hover:bg-accent bg-opacity-25">
+  <span
+    class="p-1 rounded-sm hover:bg-accent bg-opacity-25 text-white"
+    :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
+    @click="handle_click"
+  >
+    <SelectBox v-if="edit_visibility" :ckecked="node.visibility"></SelectBox>
     <svg
+      v-else
       class="text-blue-500 hover:text-white fill-current inline"
       focusable="false"
       width="1em"
@@ -18,10 +23,23 @@
 </template>
 
 <script>
+import { useVisibility } from "./compositions";
+
 export default {
   name: "File",
+  emits: ["set_invisible"],
   props: {
     node: Object,
+    index: Number,
+  },
+  setup(props, context) {
+    let { edit_visibility } = useVisibility();
+    function handle_click() {
+      if (edit_visibility.value) {
+        context.emit("set_invisible", [props.index]);
+      }
+    }
+    return { edit_visibility, handle_click };
   },
 };
 </script>

@@ -35,11 +35,17 @@
   >
   <ul class="node_tree" :class="{ shrinked: !expanded }">
     <li
-      v-for="child in node.children"
+      v-for="(child, index) in node.children"
       :key="child.id"
       :class="[child.breed, 'node_tree_item']"
+      :index="index"
     >
-      <component :is="child.breed" :node="child"></component>
+      <component
+        :index="index"
+        :is="child.breed"
+        :node="child"
+        @set_invisible="handle_set_inivisible"
+      ></component>
     </li>
   </ul>
 </template>
@@ -53,8 +59,16 @@ import Forum from "./Forum.vue";
 export default defineComponent({
   components: { File, DirectLink, Forum },
   name: "Folder",
+  emits: ["set_invisible"],
   props: {
     node: Object,
+    index: Number,
+  },
+  methods: {
+    handle_set_inivisible(path: Array) {
+      path.push(this.index);
+      this.$emit("set_invisible", path);
+    },
   },
   setup() {
     let expanded = ref(true);
