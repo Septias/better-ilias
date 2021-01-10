@@ -28,11 +28,9 @@
     />
   </svg>
 
-  <span
-    class="p-1 rounded-sm hover:bg-accent bg-opacity-25"
-    @click="expanded = !expanded"
-    >{{ node.title }}</span
-  >
+  <span class="p-1 rounded-sm hover:bg-accent" @click="expanded = !expanded">{{
+    node.title
+  }}</span>
   <ul class="node_tree" :class="{ shrinked: !expanded }">
     <li
       v-for="(child, index) in node.children"

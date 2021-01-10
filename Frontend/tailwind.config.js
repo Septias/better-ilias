@@ -1,6 +1,11 @@
-
-let main = ' #15152b'
 const colors = require('tailwindcss/colors')
+
+
+let light_main = '#232349'
+let main = '#15152b'
+let accent = colors.rose[600]
+
+
 module.exports = {
   purge: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   darkMode: 'media', // or 'media' or 'class'
@@ -8,10 +13,12 @@ module.exports = {
     extend: {
       backgroundColor: {
         'main': main,
-        'accent': colors.rose[600]
+        'light-main': light_main,
+        'accent': accent
+
       },
       colors: {
-        'accent': colors.rose[600]
+        'accent': accent
       }
     },
   },
