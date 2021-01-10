@@ -4,7 +4,7 @@
     class="p-1 rounded-sm hover:bg-accent text-white"
     :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
     @click.ctrl="hi"
-    @click="handle_click"
+    @click.exact="handle_click"
   >
     <svg
       :class="color"

@@ -71,17 +71,17 @@ export default defineComponent({
     index: Number,
   },
   methods: {
-    handle_set_inivisible(path: Array) {
+    handle_set_inivisible(path: Array<Number>) {
       path.push(this.index);
       this.$emit("set_invisible", path);
     },
-    handle_set_visible(path: Array) {
+    handle_set_visible(path: Array<Number>) {
       path.push(this.index);
       this.$emit("set_visible", path);
     },
   },
   setup(props, { emit }) {
-    let expanded = ref(true);
+    let expanded = ref(false);
     let { edit_visibility } = useVisibility();
     function handle_click() {
       if (edit_visibility.value) {
