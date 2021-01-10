@@ -1,6 +1,5 @@
 <template >
   <span v-if="node.visible || edit_visibility">
-    <SelectBox v-if="edit_visibility" :ckecked="node.visibile"></SelectBox>
     <svg
       focusable="false"
       width="1em"

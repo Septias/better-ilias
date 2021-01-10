@@ -3,11 +3,10 @@
     v-if="node.visible || edit_visibility"
     class="p-1 rounded-sm hover:bg-accent text-white"
     :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
+    @click.ctrl="hi"
     @click="handle_click"
   >
-    <SelectBox v-if="edit_visibility" :ckecked="node.visibile"></SelectBox>
     <svg
-      v-else
       :class="color"
       class="hover:text-white fill-current inline"
       focusable="false"
@@ -43,7 +42,10 @@ export default {
         }
       }
     }
-    return { edit_visibility, handle_click };
+    function hi() {
+      console.log("hi");
+    }
+    return { edit_visibility, handle_click, hi };
   },
 };
 </script>
