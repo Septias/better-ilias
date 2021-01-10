@@ -4,6 +4,7 @@
     <Folder
       :index="index"
       @set_invisible="handle_set_inivisible"
+      @set_visible="handle_set_visible"
       :node="child"
     ></Folder>
   </div>
@@ -21,8 +22,16 @@ export default defineComponent({
     console.log(data);
     let root_node = ref(data);
 
+    function handle_set_visible(path) {
+      let node = root_node.value;
+      for (let index of path.reverse()) {
+        node = node.children[index];
+        node.visible = true;
+      }
+      node.visible = true;
+    }
+
     function handle_set_inivisible(path) {
-      console.log(path);
       //console.log(root_node.value.children[path.pop()]);
       let node = root_node.value;
       for (let index of path.reverse()) {
@@ -31,7 +40,7 @@ export default defineComponent({
       node.visible = false;
     }
 
-    return { root_node, handle_set_inivisible };
+    return { root_node, handle_set_inivisible, handle_set_visible };
   },
 });
 </script>

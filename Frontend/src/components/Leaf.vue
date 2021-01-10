@@ -25,7 +25,7 @@ import { useVisibility } from "./compositions";
 
 export default {
   name: "File",
-  emits: ["set_invisible"],
+  emits: ["set_invisible", "set_visible"],
   props: {
     node: Object,
     index: Number,
@@ -35,7 +35,11 @@ export default {
     let { edit_visibility } = useVisibility();
     function handle_click() {
       if (edit_visibility.value) {
-        context.emit("set_invisible", [props.index]);
+        if (props.node.visible) {
+          context.emit("set_invisible", [props.index]);
+        } else {
+          context.emit("set_visible", [props.index]);
+        }
       }
     }
     return { edit_visibility, handle_click };

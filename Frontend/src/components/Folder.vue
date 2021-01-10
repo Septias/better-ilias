@@ -45,6 +45,7 @@
         :is="child.breed"
         :node="child"
         @set_invisible="handle_set_inivisible"
+        @set_visible="handle_set_visible"
       ></component>
     </li>
   </ul>
@@ -59,7 +60,7 @@ import Forum from "./Forum.vue";
 export default defineComponent({
   components: { File, DirectLink, Forum },
   name: "Folder",
-  emits: ["set_invisible"],
+  emits: ["set_invisible", "set_visible"],
   props: {
     node: Object,
     index: Number,
@@ -68,6 +69,10 @@ export default defineComponent({
     handle_set_inivisible(path: Array) {
       path.push(this.index);
       this.$emit("set_invisible", path);
+    },
+    handle_set_visible(path: Array) {
+      path.push(this.index);
+      this.$emit("set_visible", path);
     },
   },
   setup() {
