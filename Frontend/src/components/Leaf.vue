@@ -1,7 +1,7 @@
 <template>
   <span
     v-if="node.visible || edit_visibility"
-    class="p-1 rounded-sm hover:bg-accent text-white"
+    class="p-1 rounded-sm hover:bg-accent text-white select-none"
     :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
   >
     <svg
