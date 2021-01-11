@@ -1,8 +1,16 @@
+use crate::{
+    config::Config,
+    helpers::{get_node, request_il_page},
+    tree::{get_il_node_type, IlNode, IlNodeType, CONTAINERS, LINK, PROPERTY},
+    IdSize,
+};
 use futures::future::join_all;
 use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use log::{error, info, warn};
+use ron::{de::from_bytes, to_string};
 use scraper::{ElementRef, Html};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     io::ErrorKind,
@@ -11,15 +19,8 @@ use std::{
 };
 use tokio::{
     fs::{create_dir, File},
-    io::AsyncWriteExt,
+    io::{AsyncReadExt, AsyncWriteExt},
     task::{self, JoinHandle},
-};
-
-use crate::{
-    config::Config,
-    helpers::{get_node, request_il_page},
-    tree::{get_il_node_type, IlNode, IlNodeType, CONTAINERS, LINK, PROPERTY},
-    IdSize,
 };
 
 pub fn sync(
@@ -65,7 +66,7 @@ pub fn sync(
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FileWatcher {
     files: Vec<IdSize>,
     title_id_map: HashMap<String, IdSize>,
@@ -139,34 +140,64 @@ impl FileWatcher {
                     *self.title_id_map.get(&version_info.title).unwrap(),
                 )
                 .unwrap();
-                let child_node = child_node.lock().unwrap();
+                let mut child_node = child_node.lock().unwrap();
                 if let Some(sync) = &child_node.sync {
                     if &version_info.version > &sync.version {
-                        if let Some(sync) = &child_node.sync {
-                            download_handlers.push(FileWatcher::download_file(
-                                &child_node.uri,
-                                &sync.path,
-                                client.clone(),
-                            ));
-                        } else {
-                            warn!("No sync Info for file {}", child_node.title);
-                        }
+                        download_handlers.push(FileWatcher::download_file(
+                            &child_node.uri,
+                            &sync.path,
+                            client.clone(),
+                        ));
+                    }
+                } else {
+                    warn!("No sync Info for file {}", child_node.title);
+                }
+                if let Some(sync) = &mut child_node.sync {
+                    info!("sync: {} info: {}", sync.version, version_info.version);
+                    if &version_info.version > &sync.version {
+                        sync.version = version_info.version;
                     }
                 }
             }
         }
+        info!("Download {} files", download_handlers.len());
         join_all(download_handlers).await;
-        Ok(()) // ot
+
+        let mut writer = File::create("sync.ron")
+            .await
+            .expect("unable to create save-file");
+        let s = to_string(&self).unwrap();
+        let write_result = writer.write_all(s.as_bytes()).await;
+        if let Err(_) = write_result {
+            error!("Can't save structure.ron");
+        }
+
+        Ok(())
     }
 
-    pub fn new() -> Self {
-        return {
-            FileWatcher {
-                files: Vec::new(),
-                title_id_map: HashMap::new(),
-                child_to_parent_uri: HashMap::new(),
+    pub async fn new() -> Self {
+        let instance = {
+            match File::open("sync.ron").await {
+                Ok(mut save) => {
+                    let mut buffer = vec![];
+                    save.read_to_end(&mut buffer).await;
+                    if let Ok(file_watcher) = from_bytes(&buffer) {
+                        info!("loaded sync-file");
+                        Some(file_watcher)
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
             }
-        };
+        }
+        .unwrap_or(FileWatcher {
+            files: Vec::new(),
+            title_id_map: HashMap::new(),
+            child_to_parent_uri: HashMap::new(),
+        });
+
+        instance
     }
 }
 

@@ -256,17 +256,6 @@ pub async fn get_or_create_ilias_tree(
             "Bischte Dumm".to_string(),
         );
 
-        let pretty = PrettyConfig::new()
-            .with_separate_tuple_members(true)
-            .with_enumerate_arrays(true);
-        let mut writer = File::create("structure.ron")
-            .await
-            .expect("unable to create save-file");
-        let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();
-        let write_result = writer.write_all(s.as_bytes()).await;
-        if let Err(_) = write_result {
-            error!("Can't save structure.ron");
-        }
         Ok(ilias_tree)
     }
 }

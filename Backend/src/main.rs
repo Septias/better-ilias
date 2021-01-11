@@ -1,11 +1,13 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 use hyper::Client;
 use hyper_tls::HttpsConnector;
-use log::info;
+use log::{error, info};
 use rocket::{config::Environment, response::NamedFile, Config, State};
 use rocket_contrib::{json::Json, serve::StaticFiles};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use std::sync::{Arc, Mutex};
-use sync::{FileSelect, FileWatcher};
+use sync::{add_to_file_watcher, FileSelect, FileWatcher};
+use tokio::{fs::File, io::AsyncWriteExt};
 use tree::{get_or_create_ilias_tree, IlNode};
 #[macro_use]
 extern crate rocket;
@@ -30,26 +32,39 @@ fn index() -> std::result::Result<NamedFile, std::io::Error> {
 
 #[tokio::main]
 async fn main() {
-    //env_logger::init();
+    env_logger::init();
     let https = HttpsConnector::new();
     let client = Arc::new(Client::builder().build::<_, hyper::Body>(https));
 
-    let mut file_watcher = FileWatcher::new();
+    let mut file_watcher = FileWatcher::new().await;
 
     let ilias_tree = get_or_create_ilias_tree(client.clone(), &mut file_watcher)
         .await
         .unwrap();
 
     info!("sync structure to local filessystem");
-
-    //sync::sync(ilias_tree.clone(), client.clone()).await?;
+    sync::sync(ilias_tree.clone(), client.clone())
+        .await
+        .unwrap();
 
     info!("sync files");
-    //add_to_file_watcher(&ilias_tree.lock().unwrap(), &mut file_watcher, "Bischte Dumm".to_string()); //remove
-    /* file_watcher
-    .sync(ilias_tree, FileSelect::All, client.clone())
-    .await?;  */
 
+    file_watcher
+        .sync(ilias_tree.clone(), FileSelect::All, client.clone())
+        .await
+        .unwrap();
+
+    let pretty = PrettyConfig::new()
+        .with_separate_tuple_members(true)
+        .with_enumerate_arrays(true);
+    let mut writer = File::create("structure.ron")
+        .await
+        .expect("unable to create save-file");
+    let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();
+    let write_result = writer.write_all(s.as_bytes()).await;
+    if let Err(_) = write_result {
+        error!("Can't save structure.ron");
+    }
     rocket::ignite()
         .mount(
             "/assets/",
