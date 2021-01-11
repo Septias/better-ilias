@@ -20,6 +20,7 @@
 </template>
 
 <script>
+import axios from "axios";
 import { useVisibility } from "./compositions";
 
 export default {

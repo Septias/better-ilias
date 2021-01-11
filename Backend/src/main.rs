@@ -2,15 +2,21 @@
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use log::{error, info};
-use rocket::{response::NamedFile, State};
+use rocket::{http::RawStr, response::NamedFile, State};
 use rocket_contrib::{json::Json, serve::StaticFiles};
 use ron::ser::{to_string_pretty, PrettyConfig};
-use std::sync::{Arc, Mutex};
+use std::{
+    env::current_dir,
+    path::PathBuf,
+    process::ExitStatus,
+    sync::{Arc, Mutex},
+};
 use sync::{FileSelect, FileWatcher};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tree::{get_or_create_ilias_tree, IlNode};
 #[macro_use]
 extern crate rocket;
+use open;
 
 mod config;
 mod helpers;
@@ -28,6 +34,12 @@ fn api(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {
 #[get("/")]
 fn index() -> std::result::Result<NamedFile, std::io::Error> {
     NamedFile::open("C:/dev/repositories/BettIlias/Frontend/dist/index.html")
+}
+
+#[get("/api/open/<file..>")]
+fn open_file(file: PathBuf) -> std::result::Result<(), std::io::Error> {
+    open::that(file)?;
+    Ok(())
 }
 
 #[tokio::main]
@@ -70,7 +82,7 @@ async fn main() {
             "/assets/",
             StaticFiles::from("C:/dev/repositories/BettIlias/Frontend/dist/assets"),
         )
-        .mount("/", routes![api, index])
+        .mount("/", routes![api, index, open_file])
         .manage(ilias_tree.clone())
         .launch();
 }

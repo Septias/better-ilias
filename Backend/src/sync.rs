@@ -81,7 +81,7 @@ impl FileWatcher {
     }
     fn download_file(
         uri: &str,
-        path: &PathBuf,
+        path: &mut PathBuf,
         client: Arc<Client<HttpsConnector<HttpConnector>>>,
     ) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
         let req = Request::builder()
@@ -90,11 +90,11 @@ impl FileWatcher {
             .header("cookie", "PHPSESSID=".to_owned() + Config::get_token())
             .body(Body::empty())
             .unwrap();
-        let mut path = path.clone();
         path.set_extension("pdf");
+        let path_clone = path.clone();
         tokio::spawn(async move {
             let mut resp = client.request(req).await?;
-            let mut file = File::create(path).await?;
+            let mut file = File::create(path_clone).await?;
 
             while let Some(chunk) = resp.body_mut().data().await {
                 let chunk = chunk?;
@@ -141,11 +141,12 @@ impl FileWatcher {
                 )
                 .unwrap();
                 let mut child_node = child_node.lock().unwrap();
-                if let Some(sync) = &child_node.sync {
+                let uri = child_node.uri.clone();
+                if let Some(sync) = &mut child_node.sync {
                     if &version_info.version > &sync.version {
                         download_handlers.push(FileWatcher::download_file(
-                            &child_node.uri,
-                            &sync.path,
+                            &uri,
+                            &mut sync.path,
                             client.clone(),
                         ));
                     }
@@ -153,7 +154,6 @@ impl FileWatcher {
                     warn!("No sync Info for file {}", child_node.title);
                 }
                 if let Some(sync) = &mut child_node.sync {
-                    info!("sync: {} info: {}", sync.version, version_info.version);
                     if &version_info.version > &sync.version {
                         sync.version = version_info.version;
                     }

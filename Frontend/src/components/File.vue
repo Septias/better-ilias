@@ -1,5 +1,5 @@
 <template>
-  <Leaf color="text-blue-500">
+  <Leaf :node="node" color="text-blue-500" @dblclick="open_file">
     <path
       d="M14 11a3 3 0 0 1-3-3V4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-8h-4zm-2-3a2 2 0 0 0 2 2h3.586L12 4.414V8zM7 3h5l7 7v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"
       fill="currentColor"
@@ -8,7 +8,22 @@
 </template>
 
 <script>
+import axios from "axios";
+import { useVisibility } from "./compositions";
 export default {
-  name: "File",
+  name: "Forum",
+  props: {
+    node: Object,
+  },
+
+  setup(props) {
+    let { edit_visibility } = useVisibility();
+
+    function open_file() {
+      axios.get("/api/open/" + props.node.sync.path);
+    }
+
+    return { open_file };
+  },
 };
 </script>
