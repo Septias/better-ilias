@@ -68,8 +68,14 @@ export default defineComponent({
   name: "Folder",
   emits: ["set_invisible", "set_visible"],
   props: {
-    node: Object,
-    index: Number,
+    node: {
+      type: Object,
+      required: true,
+    },
+    index: {
+      type: Number,
+      required: true,
+    },
   },
   methods: {
     handle_set_inivisible(path: Array<Number>) {

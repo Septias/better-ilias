@@ -33,17 +33,16 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import { defineComponent, ref } from "vue";
 import axios from "axios";
 import { useVisibility } from "./compositions";
-import { IlNode } from "./types";
 
 export default defineComponent({
   name: "Ilias",
   async setup() {
     let resp = await axios.get("/api/node");
-    let data: IlNode = resp.data as IlNode;
+    let data = resp.data;
     console.log(data);
     let root_node = ref(data);
 

@@ -18,17 +18,25 @@
   </span>
 </template>
 
-<script lang="ts">
+<script>
 import { useVisibility } from "./compositions";
-import { IlNode } from "./types";
 
 export default {
   name: "File",
   emits: ["set_invisible", "set_visible"],
   props: {
-    node: Object as IlNode,
-    index: Number,
-    color: String,
+    node: {
+      type: Object,
+      required: true,
+    },
+    index: {
+      type: Number,
+      required: true,
+    },
+    color: {
+      type: String,
+      required: true,
+    },
   },
   setup(props, context) {
     let { edit_visibility } = useVisibility();

@@ -5,7 +5,7 @@ devDependencies:
   '@tailwindcss/postcss7-compat': 2.0.2
   '@vitejs/plugin-vue': 1.0.4_@vue+compiler-sfc@3.0.5
   '@vue/compiler-sfc': 3.0.5_vue@3.0.5
-  '@vuedx/typecheck': 0.4.1
+  '@vuedx/typecheck': 0.4.2-insiders-1610169628.0
   '@vuedx/typescript-plugin-vue': 0.4.1
   autoprefixer: 9.8.6
   postcss: 7.0.35
@@ -338,6 +338,28 @@ packages:
     hasBin: true
     resolution:
       integrity: sha512-7FBFWboGCFDVtMnc+egZU0UpdKFfuyhRVjs+pycWvZ630eKsGK4zKRKmJBXqccctWO2FRRRuW4pXfi1SbJGY0w==
+  /@vuedx/analyze/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@babel/code-frame': 7.12.11
+      '@babel/generator': 7.12.11
+      '@babel/parser': 7.12.11
+      '@babel/template': 7.12.7
+      '@babel/traverse': 7.12.1
+      '@babel/types': 7.12.1
+      '@types/micromatch': 4.0.1
+      '@vuedx/compiler-sfc': 0.4.2-insiders-1610169628.0
+      '@vuedx/compiler-tsx': 0.4.2-insiders-1610169628.0
+      '@vuedx/projectconfig': 0.4.2-insiders-1610169628.0
+      '@vuedx/template-ast-types': 0.4.2-insiders-1610169628.0
+      cli-highlight: 2.1.9
+      commander: 6.2.1
+      fast-glob: 3.2.4
+      hash-sum: 2.0.0
+      micromatch: 4.0.2
+    dev: true
+    hasBin: true
+    resolution:
+      integrity: sha512-jrkQjSh+lDXNo+SqSlWqIgaASzPBLVfXIehePZpybFhcFcRJ38/FK8XL3cALAJ10bddgnDNy21xHFoF+J+ahug==
   /@vuedx/compiler-sfc/0.4.1:
     dependencies:
       '@vue/compiler-core': 3.0.5
@@ -346,6 +368,14 @@ packages:
     dev: true
     resolution:
       integrity: sha512-WmiNcf6RsTTRqb0oaUhQQ/b0Eg+o+XZRdIqlgvqU5OYxTSYiajDz+Rc+2jIjByFL4WRwyfkKnKPk7C58JW6WGA==
+  /@vuedx/compiler-sfc/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@vue/compiler-core': 3.0.5
+      lru-cache: 6.0.0
+      source-map: 0.6.1
+    dev: true
+    resolution:
+      integrity: sha512-2QrWrOfuxEiB5Hph4G3tFu5XGm401TUrhpE9kRBJFVnjecY/E82/xPLmYOFuDwglwojpCT0hFtzzoDeKqbRXLw==
   /@vuedx/compiler-tsx/0.4.1:
     dependencies:
       '@babel/parser': 7.12.3
@@ -355,20 +385,39 @@ packages:
     dev: true
     resolution:
       integrity: sha512-qlK9HDrMxcOnh4/yX4/gXaEaas4L4qpN4UskfyyGLM5NmBWSjX5dGagTvKsNd0WIl5RBIYiwEYLkuoCfOJGwUw==
+  /@vuedx/compiler-tsx/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@babel/parser': 7.12.3
+      '@babel/types': 7.12.1
+      '@vue/compiler-core': 3.0.5
+      '@vuedx/template-ast-types': 0.4.2-insiders-1610169628.0
+    dev: true
+    resolution:
+      integrity: sha512-gb2vkYhUGu/FxGBDxnIyLj1AQ7FKZXRb/2/WPfDUwEjOw7k3VGuoZ0kQ5eB+BNrFfluEJOBzIvoiaPg99z70/Q==
   /@vuedx/projectconfig/0.4.1:
     dev: true
     resolution:
       integrity: sha512-rQMfQzEzeg7Y7+D2P+HDwPYiG5LRv+iE5klARAwtW/PZ27sn/PT40taDkgw199bwpZaYT2bKAwMU1CN/ATF+pg==
+  /@vuedx/projectconfig/0.4.2-insiders-1610169628.0:
+    dev: true
+    resolution:
+      integrity: sha512-FxzgkwpxSCLk35e/5zb/+77U7GFEaoMIr+tI1zX9KZgo/Za7BOLAaedLt9FgeUO+Gp2ic0lQdE5v037YvySitA==
   /@vuedx/template-ast-types/0.4.1:
     dependencies:
       '@vue/compiler-core': 3.0.5
     dev: true
     resolution:
       integrity: sha512-PK465sch8Jzh33wJjYbWoXf41yp7xGNxyqW+AmEJ02HiB4HRHaK2RdHxc6FutyluEaTurgDFNdr2iAkiHVZeoA==
-  /@vuedx/typecheck/0.4.1:
+  /@vuedx/template-ast-types/0.4.2-insiders-1610169628.0:
     dependencies:
-      '@vuedx/typescript-plugin-vue': 0.4.1
-      '@vuedx/vue-virtual-textdocument': 0.4.1
+      '@vue/compiler-core': 3.0.5
+    dev: true
+    resolution:
+      integrity: sha512-/jEg16yQbK8IJDw9qfrBRl7cBLcTR/qrefKmFckNM+XnfWDnou16LnJkJMmigIGEI8Jg33Dz8LprlCuIgQRJSQ==
+  /@vuedx/typecheck/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@vuedx/typescript-plugin-vue': 0.4.2-insiders-1610169628.0
+      '@vuedx/vue-virtual-textdocument': 0.4.2-insiders-1610169628.0
       chalk: 4.1.0
       fast-glob: 3.2.4
       minimist: 1.2.5
@@ -376,7 +425,7 @@ packages:
     dev: true
     hasBin: true
     resolution:
-      integrity: sha512-fNd6+N5HVX2qGMKlL6X+e1FIn1GO37ErfgGMnV7UdCzUyOsfzVldEw6sNu1NHyZ0pnPZduQ0rNMDaY88BJHtZQ==
+      integrity: sha512-OzkyI6ajZkM0PL0Ji8Xklx0d4mH1GRfmqw3RCvXfy+Hl+Ng0Jq26yeit1XxmzA2FKFkof7S9pfsc2J+h8ZTHhA==
   /@vuedx/typescript-plugin-vue/0.4.1:
     dependencies:
       '@intlify/core': 9.0.0-beta.16
@@ -393,6 +442,22 @@ packages:
     dev: true
     resolution:
       integrity: sha512-JK2PJc05u1/PfHd3QJ9jmPBzbqBsORzliglt8Xpd/wsV9pfRsIF/Qtg5bRkqc495MpiSZiyTgLFOxov216P3TA==
+  /@vuedx/typescript-plugin-vue/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@intlify/core': 9.0.0-beta.16
+      '@vuedx/analyze': 0.4.2-insiders-1610169628.0
+      '@vuedx/compiler-sfc': 0.4.2-insiders-1610169628.0
+      '@vuedx/projectconfig': 0.4.2-insiders-1610169628.0
+      '@vuedx/template-ast-types': 0.4.2-insiders-1610169628.0
+      '@vuedx/vue-virtual-textdocument': 0.4.2-insiders-1610169628.0
+      de-indent: 1.0.2
+      json5: 2.1.3
+      quick-lru: 5.1.1
+      vscode-uri: 2.1.2
+      vscode-web-custom-data: 0.3.2
+    dev: true
+    resolution:
+      integrity: sha512-j6kU3gDB1vgrX/OSxxN7M0ccZ8ssW8MDTQj3kSOjbzGtd/zvuIvLq/j8u4ozhmpm/PtDRng9VNDBaZ99TVBMtQ==
   /@vuedx/vue-virtual-textdocument/0.4.1:
     dependencies:
       '@vuedx/analyze': 0.4.1
@@ -404,6 +469,17 @@ packages:
     dev: true
     resolution:
       integrity: sha512-uyBXaf3/Y2QdssfLG1hmQKbSD/2tYM2eeeHKK56Klz1RzkRBxBAP0rkKS/riHzDZfVuHQ6QP4qa4QpTSav5RGQ==
+  /@vuedx/vue-virtual-textdocument/0.4.2-insiders-1610169628.0:
+    dependencies:
+      '@vuedx/analyze': 0.4.2-insiders-1610169628.0
+      '@vuedx/compiler-sfc': 0.4.2-insiders-1610169628.0
+      '@vuedx/compiler-tsx': 0.4.2-insiders-1610169628.0
+      source-map: 0.6.1
+      vscode-languageserver-textdocument: 1.0.1
+      vscode-uri: 2.1.2
+    dev: true
+    resolution:
+      integrity: sha512-PyCOkdrwvqXpq5GQD6XstqpqwFx7k574MSR0zxtyFP8x8GpDZ/8945JA2PZk0zjxa/fKgRWquuzRYSbmU5M09w==
   /acorn-node/1.8.2:
     dependencies:
       acorn: 7.4.1
@@ -1634,7 +1710,7 @@ specifiers:
   '@tailwindcss/postcss7-compat': ^2.0.2
   '@vitejs/plugin-vue': ^1.0.4
   '@vue/compiler-sfc': ^3.0.5
-  '@vuedx/typecheck': ^0.4.1
+  '@vuedx/typecheck': ^0.4.2-insiders-1610169628.0
   '@vuedx/typescript-plugin-vue': ^0.4.1
   autoprefixer: ^9
   axios: ^0.21.1
