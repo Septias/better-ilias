@@ -180,7 +180,8 @@ impl FileWatcher {
             match File::open("sync.ron").await {
                 Ok(mut save) => {
                     let mut buffer = vec![];
-                    save.read_to_end(&mut buffer).await;
+                    save.read_to_end(&mut buffer).await.unwrap();
+
                     if let Ok(file_watcher) = from_bytes(&buffer) {
                         info!("loaded sync-file");
                         Some(file_watcher)

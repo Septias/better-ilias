@@ -1,10 +1,9 @@
 use hyper::{client::HttpConnector, Client};
 use hyper_tls::HttpsConnector;
 use lazy_static::lazy_static;
-use log::{error, info};
+use log::{info};
 use ron::{
     de::from_bytes,
-    ser::{to_string_pretty, PrettyConfig},
 };
 use scraper::{ElementRef, Selector};
 use serde::{Deserialize, Serialize};
@@ -14,7 +13,7 @@ use std::{
 };
 use tokio::{
     fs::File,
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncReadExt},
     task::{self, JoinHandle},
 };
 

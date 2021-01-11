@@ -2,11 +2,11 @@
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use log::{error, info};
-use rocket::{config::Environment, response::NamedFile, Config, State};
+use rocket::{response::NamedFile, State};
 use rocket_contrib::{json::Json, serve::StaticFiles};
 use ron::ser::{to_string_pretty, PrettyConfig};
 use std::sync::{Arc, Mutex};
-use sync::{add_to_file_watcher, FileSelect, FileWatcher};
+use sync::{FileSelect, FileWatcher};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tree::{get_or_create_ilias_tree, IlNode};
 #[macro_use]
