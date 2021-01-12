@@ -8,14 +8,18 @@
       ></path>
     </template>
     <template #body>
-      <a :href="'https://ilias.uni-freiburg.de/' + node.uri">{{
-        node.title
-      }}</a>
+      <a
+        v-if="!edit_visibility"
+        :href="'https://ilias.uni-freiburg.de/' + node.uri"
+        >{{ node.title }}</a
+      >
+      <template v-else>{{ node.title }}</template>
     </template>
   </Leaf>
 </template>
 
 <script>
+import { useVisibility } from "./compositions";
 export default {
   name: "DirectLink",
   props: {
@@ -23,6 +27,10 @@ export default {
       type: Object,
       required: true,
     },
+  },
+  setup() {
+    const { edit_visibility } = useVisibility();
+    return { edit_visibility };
   },
 };
 </script>
