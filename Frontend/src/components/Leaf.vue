@@ -13,9 +13,11 @@
       height="1em"
       viewBox="0 0 24 24"
     >
-      <slot></slot>
+      <slot name="default"></slot>
     </svg>
-    {{ node.title }}
+    <slot name="body">
+      {{ node.title }}
+    </slot>
   </span>
 </template>
 
