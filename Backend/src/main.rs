@@ -73,9 +73,13 @@ async fn main() {
         .await
         .expect("unable to create save-file");
     let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();
-    let write_result = writer.write_all(s.as_bytes()).await;
-    if let Err(_) = write_result {
+
+    if writer.write_all(s.as_bytes()).await.is_err() {
         error!("Can't save structure.ron");
+    }
+
+    if open::that("http://localhost:2020").is_err() {
+        error!("couldn't open browser");
     }
     rocket::ignite()
         .mount(

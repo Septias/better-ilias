@@ -69,13 +69,13 @@ pub fn sync(
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FileWatcher {
     files: Vec<IdSize>,
-    title_id_map: HashMap<String, IdSize>,
+    uri_id_map: HashMap<String, IdSize>,
     child_to_parent_uri: HashMap<IdSize, String>,
 }
 
 impl FileWatcher {
-    pub fn add_file(&mut self, id: IdSize, title: String, parent_uri: String) {
-        self.title_id_map.insert(title, id);
+    pub fn add_file(&mut self, id: IdSize, uri: String, parent_uri: String) {
+        self.uri_id_map.insert(uri, id);
         self.child_to_parent_uri.insert(id, parent_uri);
         self.files.push(id);
     }
@@ -137,7 +137,7 @@ impl FileWatcher {
             for version_info in version_infos {
                 let child_node = get_node(
                     node_tree.clone(),
-                    *self.title_id_map.get(&version_info.title).unwrap(),
+                    *self.uri_id_map.get(&version_info.uri).unwrap(),
                 )
                 .unwrap();
                 let mut child_node = child_node.lock().unwrap();
@@ -194,7 +194,7 @@ impl FileWatcher {
         }
         .unwrap_or(FileWatcher {
             files: Vec::new(),
-            title_id_map: HashMap::new(),
+            uri_id_map: HashMap::new(),
             child_to_parent_uri: HashMap::new(),
         });
 
@@ -208,7 +208,7 @@ pub enum FileSelect {
 }
 
 struct VersionInfo {
-    title: String,
+    uri: String,
     version: u16,
 }
 
@@ -217,10 +217,11 @@ fn get_versions(elments: &Html) -> Vec<VersionInfo> {
     for container in elments.select(&CONTAINERS) {
         if let Some(node_type) = get_il_node_type(container) {
             if let Some(link) = container.select(&LINK).last() {
-                let title = link.inner_html().replace("/", " ");
+                let uri = link.value().attr("href").unwrap().to_string();
+
                 if (node_type) == IlNodeType::File {
                     versions.push(VersionInfo {
-                        title,
+                        uri,
                         version: get_version(&container) as u16,
                     })
                 }
@@ -245,7 +246,7 @@ fn extract_version(string: &str) -> Option<u32> {
 
 pub fn add_to_file_watcher(tree: &IlNode, file_watcher: &mut FileWatcher, parent_uri: String) {
     if tree.breed == IlNodeType::File {
-        file_watcher.add_file(tree.id, tree.title.clone(), parent_uri)
+        file_watcher.add_file(tree.id, tree.uri.clone(), parent_uri)
     }
     if let Some(children) = &tree.children {
         for child in children {
