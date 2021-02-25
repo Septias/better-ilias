@@ -1,7 +1,12 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use rocket::{response::NamedFile, State};
-use rocket_contrib::{json::Json, serve::StaticFiles};
+use rocket_contrib::{json::Json};
+
+use crate::tree::IlNode;
 
 #[get("/api/node")]
 pub fn api(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {

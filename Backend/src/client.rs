@@ -1,8 +1,123 @@
-use hyper::Client;
+use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
-use std::sync::Arc;
 
-type clientType = Arc<Client<HttpsConnector<HttpConnector>>>;
-struct Client {
-    client: clientType,
+use log::error;
+use scraper::Html;
+use std::{
+    convert::TryInto,
+    fmt::Display,
+    io::Stderr,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+use tokio::{
+    fs::File,
+    io::AsyncWriteExt,
+    task::{self, JoinHandle},
+};
+
+use crate::tree::{IlNode, IlNodeType};
+
+type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
+pub struct IliasClient {
+    client: ClientType,
+    token: Option<String>,
 }
+
+#[derive(Debug)]
+enum ClientError {
+    NoToken,
+    NoPath,
+}
+
+impl Display for ClientError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClientError::NoToken => {
+                write!(f, "Client has no token")
+            }
+            ClientError::NoPath => {
+                write!(f, "Requested File didn't answer with content-type")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ClientError {}
+
+impl IliasClient {
+    pub async fn get_page(
+        &self,
+        uri: &str,
+    ) -> Result<Html, Box<dyn std::error::Error + Send + Sync>> {
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
+            .header(
+                "cookie",
+                "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
+            )
+            .body(Body::empty())
+            .unwrap();
+
+        let mut resp = self.client.request(req).await?;
+        if resp.status() != hyper::StatusCode::OK {
+            error!(
+                "{} Problem with requestion ilias-page \" {}\"",
+                resp.status(),
+                uri
+            );
+        }
+        let mut bytes = vec![];
+        while let Some(chunk) = resp.body_mut().data().await {
+            let chunk = chunk?;
+            bytes.extend(&chunk[..]);
+        }
+        Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
+    }
+    pub fn new() -> Self {
+        let https = HttpsConnector::new();
+        IliasClient {
+            client: Arc::new(Client::builder().build::<_, hyper::Body>(https)),
+            token: None,
+        }
+    }
+    pub async fn download_file(
+        &self,
+        file_node: Arc<Mutex<IlNode>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        
+        let req = {
+            let node = file_node.lock().unwrap();
+            Request::builder()
+            .method(Method::GET)
+            .uri(&node.uri)
+            .header(
+                "cookie",
+                "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
+            )
+            .body(Body::empty())
+            .unwrap()
+        };
+        let mut resp = self.client.request(req).await?;
+
+        let path = {
+            let mut node = file_node.lock().unwrap();
+            let path = node.breed.get_path().unwrap();
+            let extension= resp.headers().get("content-type").ok_or_else(|| {ClientError::NoPath})?
+                .to_str()?.split("/").nth(0).unwrap();
+
+            path.push::<&str>(extension.into());
+            path.clone()
+        };   
+        
+        let mut file = File::create(path).await?;
+        while let Some(chunk) = resp.body_mut().data().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+        }
+        
+        Ok(())
+    }
+}
+

@@ -1,2 +1,0 @@
-[0112/202915.238:ERROR:directory_reader_win.cc(43)] FindFirstFile: Das System kann den angegebenen Pfad nicht finden. (0x3)
-[0113/092141.786:ERROR:crash_report_database_win.cc(496)] failed to stat report
