@@ -20,3 +20,4 @@ ron = "0.6.4"
 scraper = "0.12.0"
 serde = {version = "1.0.123", features = ["rc"]}
 tokio = {version = "1.2.0", features = ["full"]}
+itertools = "*"

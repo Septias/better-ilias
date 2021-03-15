@@ -1,7 +1,7 @@
 use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 
-use log::error;
+use log::{error, info};
 use scraper::Html;
 use std::{
     convert::TryInto,
@@ -82,42 +82,50 @@ impl IliasClient {
             token: None,
         }
     }
+    pub fn set_token(&mut self, token: &str) {
+        self.token = Some(token.to_string());
+    }
     pub async fn download_file(
         &self,
         file_node: Arc<Mutex<IlNode>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        
         let req = {
             let node = file_node.lock().unwrap();
+            info!("Requesting page {}", node.title);
             Request::builder()
-            .method(Method::GET)
-            .uri(&node.uri)
-            .header(
-                "cookie",
-                "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
-            )
-            .body(Body::empty())
-            .unwrap()
+                .method(Method::GET)
+                .uri(&node.uri)
+                .header(
+                    "cookie",
+                    "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
+                )
+                .body(Body::empty())
+                .unwrap()
         };
         let mut resp = self.client.request(req).await?;
 
         let path = {
             let mut node = file_node.lock().unwrap();
             let path = node.breed.get_path().unwrap();
-            let extension= resp.headers().get("content-type").ok_or_else(|| {ClientError::NoPath})?
-                .to_str()?.split("/").nth(0).unwrap();
+            let extension = resp
+                .headers()
+                .get("content-type")
+                .ok_or_else(|| ClientError::NoPath)?
+                .to_str()?
+                .split("/")
+                .nth(0)
+                .unwrap();
 
             path.push::<&str>(extension.into());
             path.clone()
-        };   
-        
+        };
+
         let mut file = File::create(path).await?;
         while let Some(chunk) = resp.body_mut().data().await {
             let chunk = chunk?;
             file.write_all(&chunk).await?;
         }
-        
+
         Ok(())
     }
 }
-

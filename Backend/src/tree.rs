@@ -1,12 +1,22 @@
 use crate::{client::IliasClient, IdSize};
-use futures::{future::join_all};
+use futures::future::join_all;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{info, warn};
 use ron::de::from_bytes;
 use scraper::{ElementRef, Selector};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex}};
-use tokio::{fs::File, io::AsyncReadExt, sync::mpsc::{UnboundedReceiver , UnboundedSender}, task::{self, JoinHandle}};
+use std::{
+    fmt::Display,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+use tokio::{
+    fs::File,
+    io::AsyncReadExt,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    task::{self, JoinHandle},
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
@@ -39,8 +49,8 @@ pub enum IlNodeType {
 }
 
 impl IlNodeType {
-    pub fn get_path(&mut self) -> Option<&mut PathBuf>{
-        if let Self::File{path, ..} = self {
+    pub fn get_path(&mut self) -> Option<&mut PathBuf> {
+        if let Self::File { path, .. } = self {
             Some(path)
         } else {
             None
@@ -54,7 +64,6 @@ lazy_static! {
     pub static ref PROPERTY: Selector = Selector::parse(".il_ItemProperty").unwrap();
     pub static ref IMAGE: Selector = Selector::parse(".ilListItemIcon").unwrap();
 }
-
 
 #[derive(Debug)]
 enum IliasError {
@@ -75,13 +84,12 @@ impl std::error::Error for IliasError {}
 
 pub struct ILiasTree {
     client: Arc<IliasClient>,
-    tree: Option<IlNode>,
+    tree: Option<Arc<Mutex<IlNode>>>,
 }
 
-
 impl ILiasTree {
-    pub fn get_root_node(&self) -> Option<&IlNode> {
-        self.tree.as_ref()
+    pub fn get_root_node(&self) -> Option<&Arc<Mutex<IlNode>>> {
+        self.tree.as_ref().and_then(|a| Some(a))
     }
     pub async fn update_ilias(
         &self,
@@ -96,30 +104,35 @@ impl ILiasTree {
         {
             update_ilias_tree(self.client.clone(), child.clone(), file_channel.clone()).await??;
         } */
-
-
-        update_ilias_tree(self.client.clone(), Arc::new(Mutex::new(self.tree.clone().expect("no root node"))), file_channel.clone()).await??;
+        
+        
+        update_ilias_tree(
+            self.client.clone(),
+            self.get_root_node().unwrap().clone(),
+            file_channel,
+        )
+        .await??;
 
         Ok(())
     }
-    pub fn _get_node(&self) -> Option<&IlNode> {
-        self.tree.as_ref()
-    }
+
     pub async fn from_file(
         file: PathBuf,
     ) -> Result<ILiasTree, Box<dyn std::error::Error + Send + Sync>> {
-        if let Ok(mut file) = File::open(file).await{
+        if let Ok(mut file) = File::open(file).await {
             let mut buffer = vec![];
             file.read_to_end(&mut buffer).await?;
             let tree = from_bytes(&buffer)?;
 
             Ok(ILiasTree {
                 client: Arc::new(IliasClient::new()),
-                tree: Some(tree)
+                tree: Some(tree),
             })
         } else {
-            Ok(ILiasTree::new(&"Studium"))
-        }  
+            Ok(ILiasTree::new(
+                &"ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems",
+            ))
+        }
     }
 
     pub fn download_files(
@@ -127,13 +140,13 @@ impl ILiasTree {
         mut receiver: UnboundedReceiver<Arc<Mutex<IlNode>>>,
     ) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
         let client = self.client.clone();
-        tokio::spawn( async move {
-            while let Some(res) = receiver.recv().await { //remove this unwrap
+        tokio::spawn(async move {
+            while let Some(res) = receiver.recv().await {
+                //remove this unwrap
                 client.download_file(res).await?;
-            };
+            }
             Ok(())
         })
-    
     }
 
     pub fn new(root_node_uri: &str) -> Self {
@@ -151,9 +164,11 @@ impl ILiasTree {
             uri: root_node_uri.to_string(),
             visible: true,
         };
+        let mut client = IliasClient::new();
+        client.set_token("59u31rrbvscqu3t2qfgtnrvhkt");
         ILiasTree {
-            client: Arc::new(IliasClient::new()),
-            tree: Some(root_node),
+            client: Arc::new(client),
+            tree: Some(Arc::new(Mutex::new(root_node))),
         }
     }
 }
@@ -190,10 +205,10 @@ impl<'a> HypNode<'a> {
         if node.uri != self.title().expect("can't extract uri from node") {
             false
         } else {
-            match node.breed {
-                IlNodeType::File { mut version, .. } => {
+            match &mut node.breed {
+                IlNodeType::File { version, .. } => {
                     if let Some(new_version) = self.version() {
-                        version = new_version as u16;
+                        *version = new_version as u16;
                     } else {
                         warn!("unable to extract version of {}", node.title);
                     }
@@ -238,9 +253,7 @@ impl<'a> HypNode<'a> {
     }
 
     pub fn new(element: ElementRef<'a>) -> Self {
-        HypNode {
-            element
-        }
+        HypNode { element }
     }
 }
 
@@ -251,32 +264,39 @@ pub fn update_ilias_tree(
 ) -> JoinHandle<Result<Arc<Mutex<IlNode>>, Box<dyn std::error::Error + Send + Sync>>> {
     task::spawn(async move {
         let mut handles = vec![];
-        let new_children= {
-            let uri = node.lock().unwrap().uri.to_string(); 
+        let new_children = {
+            let uri = node.lock().unwrap().uri.to_string();
             let html = client.get_page(&uri).await?;
-            match node.lock().unwrap().breed {
+
+            let mut node = node.lock().unwrap();
+            println!("downloading {}", node.title);
+            match node.breed.clone() {
                 IlNodeType::Folder { sync, .. } => {
-                    if let Some(children) = node.lock().unwrap().children.as_mut() {
+                    if let Some(children) = node.children.as_mut() {
                         if sync {
                             let elements = html.select(&CONTAINERS);
 
-                            
-                            let new_children: Vec<Arc<Mutex<IlNode>>> = elements.into_iter()
+                            let new_children: Vec<Arc<Mutex<IlNode>>> = elements
+                                .into_iter()
                                 .map(|element| HypNode::new(element))
                                 .filter(|hypnode| hypnode.uri().is_some())
-                                .map(| hypnode | {
-                                if let Some(node_index) = children.iter().position(
-                                    |child| &child.lock().unwrap().uri == hypnode.uri().unwrap()) {
+                                .map(|hypnode| {
+                                    if let Some(node_index) = children.iter().position(|child| {
+                                        &child.lock().unwrap().uri == hypnode.uri().unwrap()
+                                    }) {
                                         let node = children.remove(node_index);
                                         {
                                             let mut locked_node = node.lock().unwrap();
-                                            hypnode.compare( &mut locked_node);
+                                            hypnode.compare(&mut locked_node);
                                         }
-                                        node
-                                } else {
-                                    Arc::new(Mutex::new(hypnode.to_node().unwrap()))
-                                }
-                            }).collect();
+                                        Some(node)
+                                    } else {
+                                        println!("{:#?}", hypnode.icon_name());
+                                        hypnode.to_node().map(|a| Arc::new(Mutex::new(a)))
+                                    }
+                                })
+                                .flatten()
+                                .collect();
 
                             for child in &new_children {
                                 if let IlNodeType::Folder { .. } = child.lock().unwrap().breed {
@@ -288,7 +308,7 @@ pub fn update_ilias_tree(
                                 }
                             }
 
-                            if new_children.len() > 0{
+                            if new_children.len() > 0 {
                                 Some(new_children)
                             } else {
                                 None
@@ -300,7 +320,10 @@ pub fn update_ilias_tree(
                         None
                     }
                 }
-                _ => None
+                _ => {
+                    println!("wat");
+                    None
+                }
             }
         };
 

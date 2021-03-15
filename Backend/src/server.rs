@@ -4,13 +4,13 @@ use std::{
 };
 
 use rocket::{response::NamedFile, State};
-use rocket_contrib::{json::Json};
+use rocket_contrib::json::Json;
 
-use crate::tree::IlNode;
+use crate::tree::{ILiasTree, IlNode};
 
 #[get("/api/node")]
-pub fn api(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {
-    let node = node.lock().unwrap();
+pub fn api(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
+    let node = node.get_root_node().unwrap().lock().unwrap();
     Json(node.clone())
 }
 

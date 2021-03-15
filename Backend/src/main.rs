@@ -1,16 +1,15 @@
 #![feature(proc_macro_hygiene, decl_macro, async_closure)]
 
-
 use futures::future::join;
 use log::error;
 use rocket_contrib::serve::StaticFiles;
-use std::{sync::{Arc}, thread};
+use std::{sync::Arc, thread};
 #[macro_use]
 extern crate rocket;
 
 use open;
 use tokio::sync::mpsc;
-use tree::{ILiasTree};
+use tree::ILiasTree;
 
 mod client;
 mod server;
@@ -38,17 +37,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .launch();
     });
 
-    let ilias_clone = ilias.clone();
+    let ft1 = ilias.download_files(receiver);
 
-    
-    let ft1 = ilias_clone.download_files(receiver);
-    
     let ft2 = ilias.update_ilias(sender);
-    
-    let (res1, res2)= join(ft1, ft2).await;
+
+    let (res1, res2) = join(ft1, ft2).await;
 
     res1??;
     res2?;
+
+   
 
     // open browser
     if open::that("http://localhost:2020").is_err() {
