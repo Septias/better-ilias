@@ -129,7 +129,6 @@ impl ILiasTree {
         let client = self.client.clone();
         tokio::spawn(async move {
             while let Some(res) = receiver.recv().await {
-                //remove this unwrap
                 let client_clone = client.clone();
                 tokio::spawn(async move { client_clone.download_file(res).await.unwrap(); });
             }
@@ -208,7 +207,7 @@ impl<'a> HypNode<'a> {
     }
     pub fn to_node(self, mut path: PathBuf) -> Option<IlNode> {
         let title = self.title()?;
-        path.push(&title.replace("/", "_"));
+        path.push(&title.replace("/", "_").replace(":", "_"));
         let breed = match self.icon_name() {
             Some("fold") => Some(IlNodeType::Folder {
                 store_files: false,
@@ -283,7 +282,7 @@ pub fn update_ilias_tree(
                                         if let Some(node) = hypnode.to_node(path.clone()) {
                                             Some(if node.breed.is_file() {
                                                 let node = Arc::new(Mutex::new(node));
-                                                file_channel.send(node.clone());
+                                                file_channel.send(node.clone()).unwrap();
                                                 node
                                             } else {
                                                 Arc::new(Mutex::new(node))
