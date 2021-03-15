@@ -1,13 +1,11 @@
 use crate::{client::IliasClient, IdSize};
 use futures::future::join_all;
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{info, warn};
 use ron::de::from_bytes;
 use scraper::{ElementRef, Selector};
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::Display,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -56,6 +54,12 @@ impl IlNodeType {
             None
         }
     }
+    pub fn is_file(&self) -> bool {
+        match self {
+            IlNodeType::File { .. } => true,
+            _ => false,
+        }
+    }
 }
 
 lazy_static! {
@@ -64,23 +68,6 @@ lazy_static! {
     pub static ref PROPERTY: Selector = Selector::parse(".il_ItemProperty").unwrap();
     pub static ref IMAGE: Selector = Selector::parse(".ilListItemIcon").unwrap();
 }
-
-#[derive(Debug)]
-enum IliasError {
-    NoTree,
-}
-
-impl Display for IliasError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            IliasError::NoTree => {
-                write!(f, "No IliasTree available")
-            }
-        }
-    }
-}
-
-impl std::error::Error for IliasError {}
 
 pub struct ILiasTree {
     client: Arc<IliasClient>,
@@ -104,8 +91,7 @@ impl ILiasTree {
         {
             update_ilias_tree(self.client.clone(), child.clone(), file_channel.clone()).await??;
         } */
-        
-        
+
         update_ilias_tree(
             self.client.clone(),
             self.get_root_node().unwrap().clone(),
@@ -123,9 +109,10 @@ impl ILiasTree {
             let mut buffer = vec![];
             file.read_to_end(&mut buffer).await?;
             let tree = from_bytes(&buffer)?;
-
+            let mut client = IliasClient::new();
+            client.set_token("59u31rrbvscqu3t2qfgtnrvhkt");
             Ok(ILiasTree {
-                client: Arc::new(IliasClient::new()),
+                client: Arc::new(client),
                 tree: Some(tree),
             })
         } else {
@@ -143,7 +130,8 @@ impl ILiasTree {
         tokio::spawn(async move {
             while let Some(res) = receiver.recv().await {
                 //remove this unwrap
-                client.download_file(res).await?;
+                let client_clone = client.clone();
+                tokio::spawn(async move { client_clone.download_file(res).await.unwrap(); });
             }
             Ok(())
         })
@@ -155,7 +143,7 @@ impl ILiasTree {
             breed: IlNodeType::Folder {
                 store_files: false,
                 sync: true,
-                path: PathBuf::new(),
+                path: PathBuf::from("Studium"),
             },
             children: Some(vec![]),
             id: 0,
@@ -195,7 +183,7 @@ impl<'a> HypNode<'a> {
         Some(&img_src[START_INDEX..end_index])
     }
     fn version(&self) -> Option<usize> {
-        let inner_html = self.element.select(&PROPERTY).nth(2).unwrap().inner_html();
+        let inner_html = self.element.select(&PROPERTY).nth(2)?.inner_html();
         let start_index = inner_html.find("Version: ")? + "Version: ".len();
         let end_index = start_index + inner_html[start_index..].find("&")?;
 
@@ -218,8 +206,9 @@ impl<'a> HypNode<'a> {
             true
         }
     }
-    pub fn to_node(self) -> Option<IlNode> {
-        let path = PathBuf::new();
+    pub fn to_node(self, mut path: PathBuf) -> Option<IlNode> {
+        let title = self.title()?;
+        path.push(&title.replace("/", "_"));
         let breed = match self.icon_name() {
             Some("fold") => Some(IlNodeType::Folder {
                 store_files: false,
@@ -240,13 +229,12 @@ impl<'a> HypNode<'a> {
             }),
             _ => None,
         };
-
         Some(IlNode {
             breed: breed?,
             children: Some(vec![]),
             id: 0,
             parent: 0,
-            title: self.title()?,
+            title,
             uri: self.uri()?.to_string(),
             visible: true,
         })
@@ -269,9 +257,8 @@ pub fn update_ilias_tree(
             let html = client.get_page(&uri).await?;
 
             let mut node = node.lock().unwrap();
-            println!("downloading {}", node.title);
             match node.breed.clone() {
-                IlNodeType::Folder { sync, .. } => {
+                IlNodeType::Folder { sync, path, .. } => {
                     if let Some(children) = node.children.as_mut() {
                         if sync {
                             let elements = html.select(&CONTAINERS);
@@ -287,12 +274,23 @@ pub fn update_ilias_tree(
                                         let node = children.remove(node_index);
                                         {
                                             let mut locked_node = node.lock().unwrap();
-                                            hypnode.compare(&mut locked_node);
+                                            if hypnode.compare(&mut locked_node) {
+                                                println!("upgraded version of node");
+                                            };
                                         }
                                         Some(node)
                                     } else {
-                                        println!("{:#?}", hypnode.icon_name());
-                                        hypnode.to_node().map(|a| Arc::new(Mutex::new(a)))
+                                        if let Some(node) = hypnode.to_node(path.clone()) {
+                                            Some(if node.breed.is_file() {
+                                                let node = Arc::new(Mutex::new(node));
+                                                file_channel.send(node.clone());
+                                                node
+                                            } else {
+                                                Arc::new(Mutex::new(node))
+                                            })
+                                        } else {
+                                            None
+                                        }
                                     }
                                 })
                                 .flatten()
@@ -321,7 +319,6 @@ pub fn update_ilias_tree(
                     }
                 }
                 _ => {
-                    println!("wat");
                     None
                 }
             }
@@ -336,14 +333,14 @@ pub fn update_ilias_tree(
     })
 }
 
-fn set_ids(node: Arc<Mutex<IlNode>>, id: &mut IdSize, parent: IdSize) {
+fn _set_ids(node: Arc<Mutex<IlNode>>, id: &mut IdSize, parent: IdSize) {
     let mut node = node.lock().unwrap();
     node.id = id.clone();
     node.parent = parent;
     *id += 1;
     if let Some(children) = &node.children {
         for child in children {
-            set_ids(child.clone(), id, node.id);
+            _set_ids(child.clone(), id, node.id);
         }
     }
 }

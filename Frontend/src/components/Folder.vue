@@ -46,7 +46,7 @@
       >
         <component
           :index="index"
-          :is="child.breed"
+          :is="get_type(child.breed)"
           :node="child"
           @set_invisible="handle_set_inivisible"
           @set_visible="handle_set_visible"
@@ -104,7 +104,14 @@ export default defineComponent({
         expanded.value = !expanded.value;
       }
     }
-    return { expanded, edit_visibility, handle_click };
+    const get_type = function (breed: any) {
+      if (typeof breed == "object") {
+        return Object.keys(breed)[0];
+      } else {
+        return breed;
+      }
+    };
+    return { expanded, edit_visibility, handle_click, get_type };
   },
 });
 </script>

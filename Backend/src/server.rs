@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use rocket::{response::NamedFile, State};

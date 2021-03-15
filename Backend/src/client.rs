@@ -3,20 +3,10 @@ use hyper_tls::HttpsConnector;
 
 use log::{error, info};
 use scraper::Html;
-use std::{
-    convert::TryInto,
-    fmt::Display,
-    io::Stderr,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-use tokio::{
-    fs::File,
-    io::AsyncWriteExt,
-    task::{self, JoinHandle},
-};
+use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex}};
+use tokio::{fs::{File, create_dir_all}, io::AsyncWriteExt};
 
-use crate::tree::{IlNode, IlNodeType};
+use crate::tree::IlNode;
 
 type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
 pub struct IliasClient {
@@ -91,7 +81,7 @@ impl IliasClient {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let req = {
             let node = file_node.lock().unwrap();
-            info!("Requesting page {}", node.title);
+            info!("Downloading file {}", node.title);
             Request::builder()
                 .method(Method::GET)
                 .uri(&node.uri)
@@ -113,13 +103,15 @@ impl IliasClient {
                 .ok_or_else(|| ClientError::NoPath)?
                 .to_str()?
                 .split("/")
-                .nth(0)
+                .nth(1)
                 .unwrap();
 
-            path.push::<&str>(extension.into());
+            path.set_extension::<&str>(extension.into());
             path.clone()
         };
 
+
+        create_dir_all(path.parent().unwrap()).await.expect(&format!{"{:?}", path});
         let mut file = File::create(path).await?;
         while let Some(chunk) = resp.body_mut().data().await {
             let chunk = chunk?;
