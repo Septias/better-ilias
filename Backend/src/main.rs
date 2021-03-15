@@ -1,70 +1,39 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-use hyper::Client;
-use hyper_tls::HttpsConnector;
-use log::{error, info};
-use rocket::{http::RawStr, response::NamedFile, State};
-use rocket_contrib::{json::Json, serve::StaticFiles};
+#![feature(proc_macro_hygiene, decl_macro, async_closure)]
+
+use futures::future::join;
+use log::error;
+use rocket_contrib::serve::StaticFiles;
 use ron::ser::{to_string_pretty, PrettyConfig};
-use std::{
-    env::current_dir,
-    path::PathBuf,
-    process::ExitStatus,
-    sync::{Arc, Mutex},
-};
-use sync::{FileSelect, FileWatcher};
-use tokio::{fs::File, io::AsyncWriteExt};
-use tree::{get_or_create_ilias_tree, IlNode};
+use std::sync::Arc;
 #[macro_use]
 extern crate rocket;
-use open;
 
-mod config;
-mod helpers;
-mod sync;
+use open;
+use tokio::{fs::File, io::AsyncWriteExt, sync::mpsc};
+use tree::ILiasTree;
+
+mod client;
+mod server;
 mod tree;
 
 pub type IdSize = u16;
 
-#[get("/api/node")]
-fn api(node: State<Arc<Mutex<IlNode>>>) -> Json<IlNode> {
-    let node = node.lock().unwrap();
-    Json(node.clone())
-}
-
-#[get("/")]
-fn index() -> std::result::Result<NamedFile, std::io::Error> {
-    NamedFile::open("C:/dev/repositories/BettIlias/Frontend/dist/index.html")
-}
-
-#[get("/api/open/<file..>")]
-fn open_file(file: PathBuf) -> std::result::Result<(), std::io::Error> {
-    open::that(file)?;
-    Ok(())
-}
-
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::init();
-    let https = HttpsConnector::new();
-    let client = Arc::new(Client::builder().build::<_, hyper::Body>(https));
 
-    let mut file_watcher = FileWatcher::new().await;
+    let (sender, receiver) = mpsc::unbounded_channel();
 
-    let ilias_tree = get_or_create_ilias_tree(client.clone(), &mut file_watcher)
-        .await
-        .unwrap();
+    let ilias = Arc::new(ILiasTree::from_file("structure.ron".into()).await?);
 
-    info!("sync structure to local filessystem");
-    sync::sync(ilias_tree.clone(), client.clone())
-        .await
-        .unwrap();
+    let ft1 = ilias.download_files(receiver);
 
-    info!("sync files");
+    let ft2 = ilias.update_ilias(sender);
 
-    file_watcher
-        .sync(ilias_tree.clone(), FileSelect::All, client.clone())
-        .await
-        .unwrap();
+    let (res1, res2) = join(ft1, ft2).await;
+
+    res1??;
+    res2?;
 
     let pretty = PrettyConfig::new()
         .with_separate_tuple_members(true)
@@ -72,21 +41,26 @@ async fn main() {
     let mut writer = File::create("structure.ron")
         .await
         .expect("unable to create save-file");
-    let s = to_string_pretty(&*ilias_tree.lock().unwrap(), pretty).unwrap();
+    let s = to_string_pretty(&*ilias.get_root_node().unwrap().lock().unwrap(), pretty).unwrap();
 
     if writer.write_all(s.as_bytes()).await.is_err() {
         error!("Can't save structure.ron");
     }
 
+    // open browser
     if open::that("http://localhost:2020").is_err() {
         error!("couldn't open browser");
     }
+
+    let ilias_clone = ilias.clone();
     rocket::ignite()
         .mount(
             "/assets/",
             StaticFiles::from("C:/dev/repositories/BettIlias/Frontend/dist/assets"),
         )
-        .mount("/", routes![api, index, open_file])
-        .manage(ilias_tree.clone())
+        .mount("/", routes![server::api, server::index, server::open_file])
+        .manage(ilias_clone)
         .launch();
+
+    Ok(())
 }

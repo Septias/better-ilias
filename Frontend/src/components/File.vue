@@ -20,7 +20,8 @@ export default {
     let { edit_visibility } = useVisibility();
 
     function open_file() {
-      axios.get("/api/open/" + props.node.sync.path);
+      console.log(props.node.breed);
+      axios.get("/api/open/" + props.node.breed.File.path);
     }
 
     return { open_file };
