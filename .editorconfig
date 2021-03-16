@@ -1,0 +1,8 @@
+[*.rs]
+indent_size = 4
+
+[*.vue]
+indent_size = 2
+
+[*.ts] 
+indent_size = 2
