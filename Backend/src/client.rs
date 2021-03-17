@@ -1,9 +1,9 @@
 use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 
-use log::{error, info};
+use log::info;
 use scraper::Html;
-use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex}};
+use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex, RwLock}};
 use tokio::{fs::{File, create_dir_all}, io::AsyncWriteExt};
 
 use crate::tree::IlNode;
@@ -11,11 +11,11 @@ use crate::tree::IlNode;
 type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
 pub struct IliasClient {
     client: ClientType,
-    token: Option<String>,
+    token: RwLock<Option<String>>,
 }
 
 #[derive(Debug)]
-enum ClientError {
+pub enum ClientError {
     NoToken,
     NoPath,
 }
@@ -45,18 +45,14 @@ impl IliasClient {
             .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
             .header(
                 "cookie",
-                "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
+                "PHPSESSID=".to_owned() + &*self.token.read().unwrap().as_ref().ok_or(ClientError::NoToken)?,
             )
             .body(Body::empty())
             .unwrap();
 
         let mut resp = self.client.request(req).await?;
         if resp.status() != hyper::StatusCode::OK {
-            error!(
-                "{} Problem with requestion ilias-page \" {}\"",
-                resp.status(),
-                uri
-            );
+            return Err(Box::new(ClientError::NoToken))
         }
         let mut bytes = vec![];
         while let Some(chunk) = resp.body_mut().data().await {
@@ -65,15 +61,17 @@ impl IliasClient {
         }
         Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
     }
+
     pub fn new() -> Self {
         let https = HttpsConnector::new();
         IliasClient {
             client: Arc::new(Client::builder().build::<_, hyper::Body>(https)),
-            token: None,
+            token: RwLock::new(None),
         }
     }
-    pub fn set_token(&mut self, token: &str) {
-        self.token = Some(token.to_string());
+    pub fn set_token(self, token: &str) {
+        let mut w = self.token.write().unwrap();
+        *w = Some(token.to_string())
     }
     pub async fn download_file(
         &self,
@@ -87,7 +85,7 @@ impl IliasClient {
                 .uri(&node.uri)
                 .header(
                     "cookie",
-                    "PHPSESSID=".to_owned() + &self.token.as_ref().ok_or(ClientError::NoToken)?,
+                    "PHPSESSID=".to_owned() + &*self.token.read().unwrap().as_ref().ok_or(ClientError::NoToken)?,
                 )
                 .body(Body::empty())
                 .unwrap()
@@ -109,8 +107,6 @@ impl IliasClient {
             path.set_extension::<&str>(extension.into());
             path.clone()
         };
-
-
         create_dir_all(path.parent().unwrap()).await.expect(&format!{"{:?}", path});
         let mut file = File::create(path).await?;
         while let Some(chunk) = resp.body_mut().data().await {
