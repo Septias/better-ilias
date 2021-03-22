@@ -13,7 +13,7 @@
     ></Folder>
   </div>
   <div class="right-0 top-0 fixed">
-    <div
+    <!--<div
       class="bg-light-main p-2 m-2 rounded cursor-pointer"
       @click="edit_visibility = !edit_visibility"
     >
@@ -29,7 +29,7 @@
           fill="currentColor"
         ></path>
       </svg>
-    </div>
+    </div>-->
     <div class="bg-light-main p-2 m-2 rounded cursor-pointer" @click="update">
       <svg
         width="1em"
@@ -87,15 +87,18 @@ export default defineComponent({
     const update = () => {
       let start = Date.now();
       updating.value = true;
-      axios.get("api/update").then(() => {
+      axios.get("api/update").then((resp) => {
         updating.value = false
-        console.log("updated after", Date.now() - start )
+        root_node.value = resp.data.node;
+        console.log("updated after", Date.now() - start, "ms" )
       }).catch((e) => {
         console.error(e);
         updating.value = false
       })
     };
 
+    update()
+    
     return {
       root_node,
       handle_set_inivisible,
