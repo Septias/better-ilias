@@ -30,6 +30,25 @@
         ></path>
       </svg>
     </div>
+    <div class="bg-light-main p-2 m-2 rounded cursor-pointer" @click="update">
+      <svg
+        width="1em"
+        height="1em"
+        viewBox="0 0 24 24"
+        :class="{ 'animate-spin': updating }"
+      >
+        <path
+          v-if="updating"
+          d="M11.5 4A8.5 8.5 0 0 0 3 12.5H2A9.5 9.5 0 0 1 11.5 3v1z"
+          fill="currentColor"
+        ></path>
+        <path
+          v-else
+          d="M12 5v12.25L17.25 12l.75.664l-6.5 6.5l-6.5-6.5l.75-.664L11 17.25V5h1z"
+          fill="currentColor"
+        ></path>
+      </svg>
+    </div>
   </div>
 </template>
 
@@ -64,13 +83,27 @@ export default defineComponent({
 
     let { edit_visibility } = useVisibility();
 
+    let updating = ref(false);
+    const update = () => {
+      let start = Date.now();
+      updating.value = true;
+      axios.get("api/update").then(() => {
+        updating.value = false
+        console.log("updated after", Date.now() - start )
+      }).catch((e) => {
+        console.error(e);
+        updating.value = false
+      })
+    };
+
     return {
       root_node,
       handle_set_inivisible,
       handle_set_visible,
       edit_visibility,
+      updating,
+      update,
     };
   },
 });
 </script>
-
