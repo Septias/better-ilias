@@ -34,7 +34,7 @@ impl IliasClient {
     ) -> anyhow::Result<Html, ClientError> {
         let req = Request::builder()
             .method(Method::GET)
-            .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
+            .uri("https://ilias.uni-freiburg.de/".to_owned() + uri)
             .header(
                 "cookie",
                 "PHPSESSID=".to_owned() + &*self.token.read().unwrap().as_ref().ok_or(ClientError::NoToken)?,
@@ -89,17 +89,16 @@ impl IliasClient {
             let path = node.breed.get_path().unwrap();
             let extension = resp
                 .headers()
-                .get("content-type")
-                .ok_or_else(|| ClientError::NoContentType)?
+                .get("content-type").ok_or(ClientError::NoContentType)?
                 .to_str()?
-                .split("/")
+                .split('/')
                 .nth(1)
                 .unwrap();
 
-            path.set_extension::<&str>(extension.into());
+            path.set_extension::<&str>(extension);
             path.clone()
         };
-        create_dir_all(path.parent().unwrap()).await.expect(&format!{"{:?}", path});
+        create_dir_all(path.parent().unwrap()).await.unwrap_or_else(|_| panic!("{:?}", path));
         let mut file = File::create(path).await?;
         while let Some(chunk) = resp.body_mut().data().await {
             let chunk = chunk?;

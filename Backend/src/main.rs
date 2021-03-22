@@ -6,7 +6,7 @@ use std::sync::Arc;
 #[macro_use]
 extern crate rocket;
 
-use open;
+
 use tokio::task::JoinHandle;
 use tree::ILiasTree;
 
