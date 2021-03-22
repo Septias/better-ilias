@@ -4,7 +4,7 @@ use std::{
 };
 use rocket::{response::NamedFile, State};
 use rocket_contrib::json::{json, Json, JsonValue};
-use tokio::fs::{read, read_to_string};
+use tokio::fs::{read_to_string};
 
 use crate::tree::{ILiasTree, IlNode};
 use crate::client::ClientError;
@@ -28,10 +28,9 @@ pub async fn update(node: State<'_, Arc<ILiasTree>>) -> JsonValue {
             }
             _ => {return json!({"status": format!("{:?}",err)})}
         }
-        //
     }
+    node.save().await;
     let node = node.get_root_node().unwrap().lock().unwrap();
-    //Json(ReturnType::Ok(node.clone()))
     json!({"status": "ok", "node": &*node})
 }
 

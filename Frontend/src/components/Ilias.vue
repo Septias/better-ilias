@@ -43,7 +43,6 @@ export default defineComponent({
   async setup() {
     let resp = await axios.get("/api/node");
     let data = resp.data;
-    console.log(data);
     let root_node = ref(data);
 
     function handle_set_visible(path) {
@@ -56,7 +55,6 @@ export default defineComponent({
     }
 
     function handle_set_inivisible(path) {
-      //console.log(root_node.value.children[path.pop()]);
       let node = root_node.value;
       for (let index of path.reverse()) {
         node = node.children[index];

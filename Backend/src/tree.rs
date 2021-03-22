@@ -196,20 +196,26 @@ impl<'a> HypNode<'a> {
         Some(inner_html[start_index..end_index].parse().ok()?)
     }
     pub fn compare(self, node: &mut IlNode) -> bool {
-        if node.uri != self.title().expect("can't extract uri from node") {
+        if node.uri != self.uri().expect("can't extract uri from node") {
             false
         } else {
             match &mut node.breed {
                 IlNodeType::File { version, .. } => {
-                    if let Some(new_version) = self.version() {
-                        *version = new_version as u16;
+                    if let Some(new_version) = self.version(){
+                        if version != &(new_version as u16) {
+                            *version = new_version as u16;
+                            true
+                        } else {
+                            *version = new_version as u16;
+                            false
+                        }
                     } else {
-                        warn!("unable to extract version of {}", node.title);
+                        false
                     }
                 }
-                _ => (),
-            };
-            true
+                _ => false,
+            }
+            
         }
     }
     pub fn to_node(self, mut path: PathBuf) -> Option<IlNode> {
