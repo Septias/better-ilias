@@ -9,9 +9,15 @@ use rocket_contrib::json::Json;
 use crate::tree::{ILiasTree, IlNode};
 
 #[get("/api/node")]
-pub fn api(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
+pub fn get_node(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
     let node = node.get_root_node().unwrap().lock().unwrap();
     Json(node.clone())
+}
+
+#[get("/api/update")]
+pub async fn update(node: State<'_, Arc<ILiasTree>>) -> Json<IlNode> {
+    //let node = node.update_ilias().await.unwrap();
+    //Json(node.clone())
 }
 
 #[get("/")]

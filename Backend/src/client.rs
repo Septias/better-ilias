@@ -5,6 +5,7 @@ use log::info;
 use scraper::Html;
 use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex, RwLock}};
 use tokio::{fs::{File, create_dir_all}, io::AsyncWriteExt};
+use thiserror::Error;
 
 use crate::tree::IlNode;
 
@@ -14,32 +15,20 @@ pub struct IliasClient {
     token: RwLock<Option<String>>,
 }
 
-#[derive(Debug)]
-pub enum ClientError {
+#[derive(Debug, Error)]
+enum ClientError {
+    #[error("Client has no token")]
     NoToken,
-    NoPath,
+    #[error("Requested file didn't answer with content-type")]
+    NoContentType,
 }
 
-impl Display for ClientError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClientError::NoToken => {
-                write!(f, "Client has no token")
-            }
-            ClientError::NoPath => {
-                write!(f, "Requested File didn't answer with content-type")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ClientError {}
 
 impl IliasClient {
     pub async fn get_page(
         &self,
         uri: &str,
-    ) -> Result<Html, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> anyhow::Result<Html> {
         let req = Request::builder()
             .method(Method::GET)
             .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
@@ -98,7 +87,7 @@ impl IliasClient {
             let extension = resp
                 .headers()
                 .get("content-type")
-                .ok_or_else(|| ClientError::NoPath)?
+                .ok_or_else(|| ClientError::NoContentType)?
                 .to_str()?
                 .split("/")
                 .nth(1)

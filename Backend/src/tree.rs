@@ -82,15 +82,6 @@ impl ILiasTree {
         &self,
         file_channel: UnboundedSender<Arc<Mutex<IlNode>>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        /*for child in self
-            .get_root_node()
-            .ok_or(IliasError::NoTree)?
-            .children
-            .as_ref()
-            .expect("root node has no children")
-        {
-            update_ilias_tree(self.client.clone(), child.clone(), file_channel.clone()).await??;
-        } */
 
         update_ilias_tree(
             self.client.clone(),
@@ -248,7 +239,7 @@ pub fn update_ilias_tree(
     client: Arc<IliasClient>,
     node: Arc<Mutex<IlNode>>,
     file_channel: UnboundedSender<Arc<Mutex<IlNode>>>,
-) -> JoinHandle<Result<Arc<Mutex<IlNode>>, Box<dyn std::error::Error + Send + Sync>>> {
+) -> JoinHandle<anyhow::Result<Arc<Mutex<IlNode>>>> {
     task::spawn(async move {
         let mut handles = vec![];
         let new_children = {

@@ -27,11 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ilias = Arc::new(ILiasTree::from_file("structure.ron".into()).await?);
 
     let ft1 = ilias.download_files(receiver);
-
     let ft2 = ilias.update_ilias(sender);
-
     let (res1, res2) = join(ft1, ft2).await;
-
     res1??;
     res2?;
 
@@ -58,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "/assets/",
             StaticFiles::from("C:/dev/repositories/BettIlias/Frontend/dist/assets"),
         )
-        .mount("/", routes![server::api, server::index, server::open_file])
+        .mount("/", routes![server::get_node, server::index, server::open_file, server::update])
         .manage(ilias_clone)
         .launch();
 
