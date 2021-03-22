@@ -8,18 +8,18 @@ version = "0.1.0"
 
 [dependencies]
 env_logger = "0.8.3"
-futures = "0.3.12"
+futures = "0.3.13"
 hyper = {version = "0.14.4", features = ["client", "http1"]}
 hyper-tls = "0.5.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
-open = "1.4"
+open = "1.6.0"
 rocket = { git = "https://github.com/SergioBenitez/Rocket" }
 rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket" }
 ron = "0.6.4"
 scraper = "0.12.0"
-serde = {version = "1.0.123", features = ["rc"]}
-tokio = {version = "1.2.0", features = ["full"]}
+serde = {version = "1.0.124", features = ["rc"]}
+tokio = {version = "1.4.0", features = ["full"]}
 itertools = "*"
 thiserror="*"
 anyhow="*"
