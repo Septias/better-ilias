@@ -1,4 +1,4 @@
-use crate::{client::IliasClient, IdSize};
+use crate::{IdSize, client::{ClientError, IliasClient}};
 use futures::future::join_all;
 use lazy_static::lazy_static;
 use log::{info, warn};
@@ -9,12 +9,9 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::{
-    fs::File,
-    io::AsyncReadExt,
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    task::{self, JoinHandle},
-};
+use tokio::{fs::File, io::{AsyncReadExt,AsyncWriteExt}, sync::mpsc::{self, UnboundedReceiver, UnboundedSender}, task::{self, JoinHandle}};
+use ron::ser::{to_string_pretty, PrettyConfig};
+
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
@@ -72,6 +69,8 @@ lazy_static! {
 pub struct ILiasTree {
     client: Arc<IliasClient>,
     tree: Option<Arc<Mutex<IlNode>>>,
+    receiver: Mutex<Option<UnboundedReceiver<Arc<Mutex<IlNode>>>>>,
+    sender: UnboundedSender<Arc<Mutex<IlNode>>>,
 }
 
 impl ILiasTree {
@@ -80,15 +79,14 @@ impl ILiasTree {
     }
     pub async fn update_ilias(
         &self,
-        file_channel: UnboundedSender<Arc<Mutex<IlNode>>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(), ClientError> {
 
         update_ilias_tree(
             self.client.clone(),
             self.get_root_node().unwrap().clone(),
-            file_channel,
+            self.sender.clone(),
         )
-        .await??;
+        .await.unwrap()?;
 
         Ok(())
     }
@@ -100,11 +98,12 @@ impl ILiasTree {
             let mut buffer = vec![];
             file.read_to_end(&mut buffer).await?;
             let tree = from_bytes(&buffer)?;
-            let mut client = IliasClient::new();
-            client.set_token("59u31rrbvscqu3t2qfgtnrvhkt");
+            let (sender, receiver) = mpsc::unbounded_channel();
             Ok(ILiasTree {
-                client: Arc::new(client),
+                client: Arc::new( IliasClient::new()),
                 tree: Some(tree),
+                receiver: Mutex::new(Some(receiver)),
+                sender
             })
         } else {
             Ok(ILiasTree::new(
@@ -113,18 +112,34 @@ impl ILiasTree {
         }
     }
 
-    pub fn download_files(
+    pub async fn download_files(
         &self,
-        mut receiver: UnboundedReceiver<Arc<Mutex<IlNode>>>,
-    ) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
+    ) -> Result<(), anyhow::Error> {
         let client = self.client.clone();
-        tokio::spawn(async move {
-            while let Some(res) = receiver.recv().await {
-                let client_clone = client.clone();
-                tokio::spawn(async move { client_clone.download_file(res).await.unwrap(); });
-            }
-            Ok(())
-        })
+        let mut receiver = self.receiver.lock().unwrap().take().unwrap();
+        while let Some(res) = receiver.recv().await {
+            let client_clone = client.clone();
+            tokio::spawn(async move { client_clone.download_file(res).await.unwrap(); });
+        }
+        Ok(())
+    }
+
+    pub fn set_client_token(&self, token: &str){
+        self.client.set_token(token);
+    } 
+
+    pub async fn save(&self){
+        let pretty = PrettyConfig::new()
+        .with_separate_tuple_members(true)
+        .with_enumerate_arrays(true);
+        let mut writer = File::create("structure.ron")
+            .await
+            .expect("unable to create save-file");
+        let s = to_string_pretty(&*self.get_root_node().unwrap().lock().unwrap(), pretty).unwrap();
+
+        if writer.write_all(s.as_bytes()).await.is_err() {
+            error!("Can't save structure.ron");
+        }
     }
 
     pub fn new(root_node_uri: &str) -> Self {
@@ -142,11 +157,12 @@ impl ILiasTree {
             uri: root_node_uri.to_string(),
             visible: true,
         };
-        let mut client = IliasClient::new();
-        client.set_token("59u31rrbvscqu3t2qfgtnrvhkt");
+        let (sender, receiver) = mpsc::unbounded_channel();
         ILiasTree {
-            client: Arc::new(client),
+            client: Arc::new(IliasClient::new()),
             tree: Some(Arc::new(Mutex::new(root_node))),
+            receiver: Mutex::new(Some(receiver)),
+            sender
         }
     }
 }
@@ -239,7 +255,7 @@ pub fn update_ilias_tree(
     client: Arc<IliasClient>,
     node: Arc<Mutex<IlNode>>,
     file_channel: UnboundedSender<Arc<Mutex<IlNode>>>,
-) -> JoinHandle<anyhow::Result<Arc<Mutex<IlNode>>>> {
+) -> JoinHandle<anyhow::Result<Arc<Mutex<IlNode>>, ClientError>> {
     task::spawn(async move {
         let mut handles = vec![];
         let new_children = {
@@ -265,7 +281,7 @@ pub fn update_ilias_tree(
                                         {
                                             let mut locked_node = node.lock().unwrap();
                                             if hypnode.compare(&mut locked_node) {
-                                                println!("upgraded version of node");
+                                                info!("upgraded version of node");
                                             };
                                         }
                                         Some(node)

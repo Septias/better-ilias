@@ -3,10 +3,9 @@ use hyper_tls::HttpsConnector;
 
 use log::info;
 use scraper::Html;
-use std::{fmt::Display, path::PathBuf, sync::{Arc, Mutex, RwLock}};
+use std::{str::Utf8Error, sync::{Arc, Mutex, RwLock}};
 use tokio::{fs::{File, create_dir_all}, io::AsyncWriteExt};
 use thiserror::Error;
-
 use crate::tree::IlNode;
 
 type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
@@ -16,11 +15,15 @@ pub struct IliasClient {
 }
 
 #[derive(Debug, Error)]
-enum ClientError {
+pub enum ClientError {
     #[error("Client has no token")]
     NoToken,
     #[error("Requested file didn't answer with content-type")]
     NoContentType,
+    #[error("Client Error")]
+    ClientError(#[from] hyper::Error),
+    #[error("Parse Error")]
+    ParesError(#[from] Utf8Error )
 }
 
 
@@ -28,7 +31,7 @@ impl IliasClient {
     pub async fn get_page(
         &self,
         uri: &str,
-    ) -> anyhow::Result<Html> {
+    ) -> anyhow::Result<Html, ClientError> {
         let req = Request::builder()
             .method(Method::GET)
             .uri("https://ilias.uni-freiburg.de/".to_owned() + &uri)
@@ -41,7 +44,7 @@ impl IliasClient {
 
         let mut resp = self.client.request(req).await?;
         if resp.status() != hyper::StatusCode::OK {
-            return Err(Box::new(ClientError::NoToken))
+            return Err(ClientError::NoToken)
         }
         let mut bytes = vec![];
         while let Some(chunk) = resp.body_mut().data().await {
@@ -58,7 +61,7 @@ impl IliasClient {
             token: RwLock::new(None),
         }
     }
-    pub fn set_token(self, token: &str) {
+    pub fn set_token(&self, token: &str) {
         let mut w = self.token.write().unwrap();
         *w = Some(token.to_string())
     }
