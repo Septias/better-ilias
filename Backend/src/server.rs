@@ -2,9 +2,10 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use rocket::{response::NamedFile, State};
+use rocket::{State, response::NamedFile};
 use rocket_contrib::json::{json, Json, JsonValue};
-use tokio::fs::{read_to_string};
+use serde::Deserialize;
+use tokio::fs;
 
 use crate::tree::{ILiasTree, IlNode};
 use crate::client::ClientError;
@@ -21,9 +22,6 @@ pub async fn update(node: State<'_, Arc<ILiasTree>>) -> JsonValue {
         
         match err {
             ClientError::NoToken => {
-                if let Ok(token) = read_to_string("token.txt").await {
-                    node.set_client_token(&token);
-                }
                 return json!({"status": "set_token"})
             }
             _ => {return json!({"status": format!("{:?}",err)})}
@@ -43,4 +41,30 @@ pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
 pub fn open_file(file: PathBuf) -> std::result::Result<(), std::io::Error> {
     open::that(file)?;
     Ok(())
+}
+
+#[derive(Deserialize)]
+pub struct Credentials {
+    username: String,
+    password: String,
+    persistent: bool
+}
+
+#[post("/api/credentials", data= "<credentials>")]
+pub async fn set_credentials(credentials: Json<Credentials>, node: State<'_, Arc<ILiasTree>>) -> JsonValue {
+    let creds = [credentials.username.to_owned(), credentials.password.to_owned()];
+    let err = node.client.acquire_token(&creds).await;
+
+
+    if let Err(err) = err{
+        json!({"status": format!("{}",err)})
+    } else {
+        if credentials.persistent {
+            if fs::write("credentials.txt", creds.join("\n")).await.is_err() {
+                error!("couldn't write credentials to file");
+            };
+        }
+
+        json!({"status": "ok"})
+    }
 }

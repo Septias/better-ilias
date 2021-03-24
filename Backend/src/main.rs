@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "/assets/",
             StaticFiles::from("C:/dev/repositories/BettIlias/Frontend/dist/assets"),
         )
-        .mount("/", routes![server::get_node, server::index, server::open_file, server::update])
+        .mount("/", routes![server::get_node, server::index, server::open_file, server::update, server::set_credentials])
         .manage(ilias)
         .launch().await?;
 

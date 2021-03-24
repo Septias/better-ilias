@@ -52,7 +52,7 @@
   </div>
   <div
     class="fixed h-full w-full flex justify-center items-center top-0 bg-main bg-opacity-50"
-    @click="login = !login"
+    @click="disable_login"
     v-show="login"
   >
     <form
@@ -60,6 +60,7 @@
       @submit.prevent="send_credentials"
       @click.stop=""
     >
+      <p v-if="wrong" class="text-sm text-accent">{{ wrong }}</p>
       <label>Benutzername</label>
       <input v-model="username" autocomplete="username" class="block w-full" />
       <label>Passwort</label>
@@ -69,9 +70,14 @@
         class="block w-full"
         type="password"
       />
-      <input class="mr-1" type="checkbox" />
+      <input class="mr-1" type="checkbox" v-model="persistent"/>
       <p class="inline-block text-sm">Angemeldet bleiben</p>
-      <button type="submit" class="button px-2 bg-accent rounded float-right">
+      <button
+        type="submit"
+        class="button px-2 rounded float-right"
+        :class="requesting ? 'bg-gray-600' : 'bg-accent'"
+        :disabled="requesting"
+      >
         Ok!
       </button>
     </form>
@@ -147,19 +153,40 @@ export default defineComponent({
 
     const username = ref("");
     const password = ref("");
-    const persistent = ref("");
+    const persistent = ref(false);
+    const wrong = ref("");
+    const requesting = ref(false);
     const send_credentials = () => {
+      requesting.value = true;
+      wrong.value = "";
       axios
         .post("api/credentials", {
           username: username.value,
           password: password.value,
-          persistent,
+          persistent: persistent.value,
         })
         .then((resp) => {
-          console.log(resp);
+          requesting.value = false;
+          console.log(resp.data.status);
+          if (resp.data.status == "ok") {
+            wrong.value = "";
+            login.value = false;
+          } else {
+            wrong.value = resp.data.status;
+          }
+        })
+        .catch((err) => {
+          console.err(err);
+          requesting.value = false;
         });
-      login.value = false;
     };
+
+    const disable_login = () => {
+      if (!requesting.value) {
+        login.value = !login.value;
+      }
+    };
+
     return {
       root_node,
       handle_set_inivisible,
@@ -172,6 +199,9 @@ export default defineComponent({
       password,
       send_credentials,
       persistent,
+      wrong,
+      requesting,
+      disable_login,
     };
   },
 });
