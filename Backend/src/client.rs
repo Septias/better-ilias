@@ -105,8 +105,7 @@ impl IliasClient {
         let context = {
             let document = Html::parse_document(&resp_body);
             document
-                .select(&CONTEXT)
-                .nth(0)
+                .select(&CONTEXT).next()
                 .expect("No Context found")
                 .value()
                 .attr("value")
@@ -162,7 +161,7 @@ impl IliasClient {
 
         let token = sess_id.value().to_string();
         self.set_token(&token);
-        Ok(token.to_string())
+        Ok(token)
     }
 
     pub async fn download_file(

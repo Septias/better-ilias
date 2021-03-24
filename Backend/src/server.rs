@@ -59,10 +59,8 @@ pub async fn set_credentials(credentials: Json<Credentials>, node: State<'_, Arc
     if let Err(err) = err{
         json!({"status": format!("{}",err)})
     } else {
-        if credentials.persistent {
-            if fs::write("credentials.txt", creds.join("\n")).await.is_err() {
-                error!("couldn't write credentials to file");
-            };
+        if credentials.persistent && fs::write("credentials.txt", creds.join("\n")).await.is_err() {
+            error!("couldn't write credentials to file");
         }
 
         json!({"status": "ok"})

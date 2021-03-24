@@ -87,7 +87,7 @@ impl ILiasTree {
             if let ClientError::NoToken = err {
                 if let Ok(raw_credenetials) = read_to_string("credentials.txt").await{
                     let credentials: [String; 2] = raw_credenetials
-                        .split("\n")
+                        .split('\n')
                         .map(|c| c.trim().to_owned())
                         .collect_vec()
                         .try_into()
@@ -217,7 +217,7 @@ impl<'a> HypNode<'a> {
         let start_index = inner_html.find("Version: ")? + "Version: ".len();
         let end_index = start_index + inner_html[start_index..].find('&')?;
 
-        Some(inner_html[start_index..end_index].parse().ok()?)
+        inner_html[start_index..end_index].parse().ok()
     }
     pub fn compare(self, node: &mut IlNode) -> bool {
         if node.uri != self.uri().expect("can't extract uri from node") {
