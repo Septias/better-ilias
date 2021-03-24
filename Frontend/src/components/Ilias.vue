@@ -50,7 +50,44 @@
       </svg>
     </div>
   </div>
+  <div
+    class="fixed h-full w-full flex justify-center items-center top-0 bg-main bg-opacity-50"
+    @click="login = !login"
+    v-show="login"
+  >
+    <form
+      class="bg-main rounded-xl border-2 border-accent p-4 custom_form text-xl"
+      @submit.prevent="send_credentials"
+      @click.stop=""
+    >
+      <label>Benutzername</label>
+      <input v-model="username" autocomplete="username" class="block w-full" />
+      <label>Passwort</label>
+      <input
+        v-model="password"
+        autocomplete="current-password"
+        class="block w-full"
+        type="password"
+      />
+      <input class="mr-1" type="checkbox" />
+      <p class="inline-block text-sm">Angemeldet bleiben</p>
+      <button type="submit" class="button px-2 bg-accent rounded float-right">
+        Ok!
+      </button>
+    </form>
+  </div>
 </template>
+
+<style lang="sass" scoped>
+.custom_form
+  label
+    @apply text-accent
+
+  input
+    @apply bg-light-main
+    @apply p-1
+    @apply mb-3
+</style>
 
 <script>
 import { defineComponent, ref } from "vue";
@@ -87,18 +124,42 @@ export default defineComponent({
     const update = () => {
       let start = Date.now();
       updating.value = true;
-      axios.get("api/update").then((resp) => {
-        updating.value = false
-        root_node.value = resp.data.node;
-        console.log("updated after", Date.now() - start, "ms" )
-      }).catch((e) => {
-        console.error(e);
-        updating.value = false
-      })
+      axios
+        .get("api/update")
+        .then((resp) => {
+          updating.value = false;
+          if (resp.data.status == "set_token") {
+            login.value = true;
+            return;
+          }
+          root_node.value = resp.data.node;
+          console.log("updated after", Date.now() - start, "ms");
+        })
+        .catch((e) => {
+          console.error(e);
+          updating.value = false;
+        });
     };
 
-    update()
-    
+    update();
+
+    const login = ref(false);
+
+    const username = ref("");
+    const password = ref("");
+    const persistent = ref("");
+    const send_credentials = () => {
+      axios
+        .post("api/credentials", {
+          username: username.value,
+          password: password.value,
+          persistent,
+        })
+        .then((resp) => {
+          console.log(resp);
+        });
+      login.value = false;
+    };
     return {
       root_node,
       handle_set_inivisible,
@@ -106,6 +167,11 @@ export default defineComponent({
       edit_visibility,
       updating,
       update,
+      login,
+      username,
+      password,
+      send_credentials,
+      persistent,
     };
   },
 });
