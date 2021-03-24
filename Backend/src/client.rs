@@ -1,21 +1,22 @@
 use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 
-use log::info;
-use std::{str::Utf8Error, sync::{Arc, Mutex, RwLock}};
-use tokio::{fs::{File, create_dir_all}, io::AsyncWriteExt};
-use thiserror::Error;
 use crate::tree::IlNode;
-use reqwest::{
-    blocking::ClientBuilder,
-    header::CONTENT_TYPE,
-    redirect::Policy,
-};
-use scraper::{Html, Selector};
 use lazy_static::lazy_static;
+use log::info;
+use reqwest::{header::CONTENT_TYPE, redirect::Policy, ClientBuilder};
+use scraper::{Html, Selector};
+use std::{
+    str::Utf8Error,
+    sync::{Arc, Mutex, RwLock},
+};
+use thiserror::Error;
+use tokio::{
+    fs::{create_dir_all, File},
+    io::AsyncWriteExt,
+};
 
 use urlencoding::encode;
-
 
 type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
 pub struct IliasClient {
@@ -32,9 +33,11 @@ pub enum ClientError {
     #[error("Client Error")]
     ClientError(#[from] hyper::Error),
     #[error("Parse Error")]
-    ParesError(#[from] Utf8Error ),
+    ParesError(#[from] Utf8Error),
     #[error("Reqwest Error")]
-    ReqwestError(#[from] reqwest::Error)
+    ReqwestError(#[from] reqwest::Error),
+    #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
+    BadCredentials,
 }
 
 lazy_static! {
@@ -43,23 +46,26 @@ lazy_static! {
 }
 
 impl IliasClient {
-    pub async fn get_page(
-        &self,
-        uri: &str,
-    ) -> anyhow::Result<Html, ClientError> {
+    pub async fn get_page(&self, uri: &str) -> anyhow::Result<Html, ClientError> {
         let req = Request::builder()
             .method(Method::GET)
             .uri("https://ilias.uni-freiburg.de/".to_owned() + uri)
             .header(
                 "cookie",
-                "PHPSESSID=".to_owned() + &*self.token.read().unwrap().as_ref().ok_or(ClientError::NoToken)?,
+                "PHPSESSID=".to_owned()
+                    + &*self
+                        .token
+                        .read()
+                        .unwrap()
+                        .as_ref()
+                        .ok_or(ClientError::NoToken)?,
             )
             .body(Body::empty())
             .unwrap();
 
         let mut resp = self.client.request(req).await?;
         if resp.status() != hyper::StatusCode::OK {
-            return Err(ClientError::NoToken)
+            return Err(ClientError::NoToken);
         }
         let mut bytes = vec![];
         while let Some(chunk) = resp.body_mut().data().await {
@@ -81,44 +87,51 @@ impl IliasClient {
         *w = Some(token.to_string())
     }
 
-    pub fn acquire_token(&self, credentials: [String; 2]) -> Result<String, ClientError> {
+    pub async fn acquire_token(&self, credentials: &[String; 2]) -> Result<String, ClientError> {
         let client = ClientBuilder::new()
             .cookie_store(true)
             .http1_title_case_headers()
             .build()?;
-    
+
         // request to get context and auth-url
         let resp = client
             .get("https://ilias.uni-freiburg.de/shib_login.php?target=")
-            .send()?;
-    
+            .send()
+            .await?;
+
         let url = resp.url().as_str().to_owned();
-        let resp_body = resp.text()?;
-        let document = Html::parse_document(&resp_body);
-    
-        let context = document
-            .select(&CONTEXT)
-            .nth(0)
-            .expect("No Context found")
-            .value()
-            .attr("value")
-            .expect("No Value Field");
-    
+        let resp_body = resp.text().await?;
+
+        let context = {
+            let document = Html::parse_document(&resp_body);
+            document
+                .select(&CONTEXT)
+                .nth(0)
+                .expect("No Context found")
+                .value()
+                .attr("value")
+                .expect("No Value Field")
+                .to_owned()
+        };
+
         // request relay_state and SAMLResponse
         let resp_body = client
             .post(url)
             .body(format!("LoginForm%5Bcontext%5D={}&LoginForm%5Busername%5D={}&LoginForm%5Bpassword%5D={}&yt0=Login", 
                 encode(&context), credentials[0], credentials[1]))
             .header(CONTENT_TYPE,"application/x-www-form-urlencoded")
-            .send()?.text()?;
-    
-        let html = Html::parse_document(&resp_body);
-        let mut inputs = html.select(&INPUTS);
-    
-        let relay_state = inputs.next().unwrap().value().attr("value").unwrap();
-        let samlresponse = inputs.next().unwrap().value().attr("value").unwrap();
-    
-        let client = reqwest::blocking::Client::builder()
+            .send()
+            .await?.text().await?;
+
+        let (relay_state, samlresponse) = {
+            let html = Html::parse_document(&resp_body);
+            let mut inputs = html.select(&INPUTS);
+            let relay_state = inputs.next().unwrap().value().attr("value").unwrap();
+            let samlresponse = inputs.next().unwrap().value().attr("value").unwrap();
+            (relay_state.to_owned(), samlresponse.to_owned())
+        };
+
+        let client = reqwest::Client::builder()
             .redirect(Policy::custom(|attempt| {
                 if attempt.previous().len() > 1 {
                     attempt.stop()
@@ -129,25 +142,28 @@ impl IliasClient {
             .cookie_store(true)
             .build()
             .unwrap();
-    
+
         // make final call to ilias to acquire PHPSESSID
         let resp = client
             .post("https://ilias.uni-freiburg.de/Shibboleth.sso/SAML2/POST")
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(format!(
                 "RelayState={}&SAMLResponse={}",
-                encode(relay_state),
-                encode(samlresponse)
+                encode(&relay_state),
+                encode(&samlresponse)
             ))
-            .send()?;
-    
-        let sess_id = resp.cookies().find(|c| c.name() == "PHPSESSID").unwrap();
+            .send()
+            .await?;
+
+        let sess_id = resp
+            .cookies()
+            .find(|c| c.name() == "PHPSESSID")
+            .ok_or(ClientError::BadCredentials)?;
 
         let token = sess_id.value().to_string();
         self.set_token(&token);
-        Ok(token)
+        Ok(token.to_string())
     }
-
 
     pub async fn download_file(
         &self,
@@ -161,7 +177,13 @@ impl IliasClient {
                 .uri(&node.uri)
                 .header(
                     "cookie",
-                    "PHPSESSID=".to_owned() + &*self.token.read().unwrap().as_ref().ok_or(ClientError::NoToken)?,
+                    "PHPSESSID=".to_owned()
+                        + &*self
+                            .token
+                            .read()
+                            .unwrap()
+                            .as_ref()
+                            .ok_or(ClientError::NoToken)?,
                 )
                 .body(Body::empty())
                 .unwrap()
@@ -173,7 +195,8 @@ impl IliasClient {
             let path = node.breed.get_path().unwrap();
             let extension = resp
                 .headers()
-                .get("content-type").ok_or(ClientError::NoContentType)?
+                .get("content-type")
+                .ok_or(ClientError::NoContentType)?
                 .to_str()?
                 .split('/')
                 .nth(1)
@@ -182,7 +205,9 @@ impl IliasClient {
             path.set_extension::<&str>(extension);
             path.clone()
         };
-        create_dir_all(path.parent().unwrap()).await.unwrap_or_else(|_| panic!("{:?}", path));
+        create_dir_all(path.parent().unwrap())
+            .await
+            .unwrap_or_else(|_| panic!("{:?}", path));
         let mut file = File::create(path).await?;
         while let Some(chunk) = resp.body_mut().data().await {
             let chunk = chunk?;
