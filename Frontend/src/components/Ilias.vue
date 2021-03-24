@@ -171,6 +171,7 @@ export default defineComponent({
           if (resp.data.status == "ok") {
             wrong.value = "";
             login.value = false;
+            update()
           } else {
             wrong.value = resp.data.status;
           }

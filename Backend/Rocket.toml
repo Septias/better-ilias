@@ -1,3 +1,13 @@
 [debug]
 address = "127.0.0.1"
 port = 2020
+
+
+[global]
+address = "127.0.0.1"
+keep_alive = 5
+limits = {forms = 32768}
+log = "debug"
+port = 2020
+read_timeout = 5
+write_timeout = 5

@@ -5,8 +5,6 @@ use rocket_contrib::serve::StaticFiles;
 use std::sync::Arc;
 #[macro_use]
 extern crate rocket;
-
-
 use tokio::task::JoinHandle;
 use tree::ILiasTree;
 
@@ -35,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     rocket::ignite()
         .mount(
             "/assets/",
-            StaticFiles::from("C:/dev/repositories/BettIlias/Frontend/dist/assets"),
+            StaticFiles::from("./dist/assets"),
         )
         .mount("/", routes![server::get_node, server::index, server::open_file, server::update, server::set_credentials])
         .manage(ilias)

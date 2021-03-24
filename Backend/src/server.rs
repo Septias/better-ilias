@@ -34,7 +34,7 @@ pub async fn update(node: State<'_, Arc<ILiasTree>>) -> JsonValue {
 
 #[get("/")]
 pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
-    NamedFile::open("C:/dev/repositories/BettIlias/Frontend/dist/index.html").await
+    NamedFile::open("./dist/index.html").await
 }
 
 #[get("/api/open/<file..>")]

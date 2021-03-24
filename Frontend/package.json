@@ -1,6 +1,6 @@
 {
-  "name": "my-vue-app",
-  "version": "0.0.0",
+  "name": "better_ilias_frontend",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build"
