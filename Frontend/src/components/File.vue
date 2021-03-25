@@ -18,7 +18,9 @@ export default {
 
   setup(props) {
     function open_file() {
-      axios.get("/api/open/" + props.node.breed.File.path);
+      axios.post("/api/open/", {
+        path: props.node.breed.File.path,
+      });
     }
     return { open_file };
   },

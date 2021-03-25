@@ -61,9 +61,6 @@ lazy_static! {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::init();
 
-    println!("{}", BACKEND_BASE_PATH.to_str().unwrap());
-    println!("{}", FRONTEND_BASE_PATH.join("dist/assets").to_str().unwrap());
-
     let ilias = Arc::new(ILiasTree::from_file("structure.ron".into()).await?);
 
     let ilias_clone = ilias.clone();

@@ -33,9 +33,14 @@ pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
     NamedFile::open(FRONTEND_BASE_PATH.join("dist/index.html")).await
 }
 
-#[get("/api/open/<file..>")]
-pub fn open_file(file: PathBuf) -> std::result::Result<(), std::io::Error> {
-    open::that(file)?;
+#[derive(Deserialize)]
+pub struct File {
+    path: String
+}
+
+#[post("/api/open", data = "<file>")]
+pub fn open_file(file: Json<File>) -> std::result::Result<(), std::io::Error> {
+    open::that(&file.path)?;
     Ok(())
 }
 
