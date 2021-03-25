@@ -3,8 +3,12 @@ authors = ["Septias <39526136+Septias@users.noreply.github.com>"]
 edition = "2018"
 name = "better_ilias"
 version = "1.0.0"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
 
 [dependencies]
 anyhow = "*"
