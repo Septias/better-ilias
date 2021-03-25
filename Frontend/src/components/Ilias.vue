@@ -129,22 +129,24 @@ export default defineComponent({
     let updating = ref(false);
     const update = () => {
       let start = Date.now();
-      updating.value = true;
-      axios
-        .get("api/update")
-        .then((resp) => {
-          updating.value = false;
-          if (resp.data.status == "set_token") {
-            login.value = true;
-            return;
-          }
-          root_node.value = resp.data.node;
-          console.log("updated after", Date.now() - start, "ms");
-        })
-        .catch((e) => {
-          console.error(e);
-          updating.value = false;
-        });
+      if (!updating.value){
+        updating.value = true;
+        axios
+          .get("api/update")
+          .then((resp) => {
+            updating.value = false;
+            if (resp.data.status == "set_token") {
+              login.value = true;
+              return;
+            }
+            root_node.value = resp.data.node;
+            console.log("updated after", Date.now() - start, "ms");
+          })
+          .catch((e) => {
+            console.error(e);
+            updating.value = false;
+          });
+      }
     };
 
     update();
