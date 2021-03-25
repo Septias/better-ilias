@@ -1,4 +1,5 @@
 #![feature(proc_macro_hygiene, decl_macro, async_closure)]
+//#![windows_subsystem = "windows"]
 
 use log::error;
 use rocket_contrib::serve::StaticFiles;
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "/assets/",
             StaticFiles::from("./dist/assets"),
         )
-        .mount("/", routes![server::get_node, server::index, server::open_file, server::update, server::set_credentials])
+        .mount("/", routes![server::get_node, server::index, server::open_file, server::update, server::set_credentials, server::favicon])
         .manage(ilias)
         .launch().await?;
 
