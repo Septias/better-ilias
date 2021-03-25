@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::{convert::TryInto, path::PathBuf, sync::{Arc, Mutex}};
 use tokio::{fs::{File, read_to_string}, io::{AsyncReadExt, AsyncWriteExt}, sync::mpsc::{self, UnboundedReceiver, UnboundedSender}, task::{self, JoinHandle}};
 
+use crate::BACKEND_BASE_PATH;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
@@ -172,7 +173,7 @@ impl ILiasTree {
             breed: IlNodeType::Folder {
                 store_files: false,
                 sync: true,
-                path: PathBuf::from("Studium"),
+                path: BACKEND_BASE_PATH.join("Studium"),
             },
             children: Some(vec![]),
             id: 0,

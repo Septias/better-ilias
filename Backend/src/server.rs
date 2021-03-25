@@ -6,6 +6,8 @@ use tokio::fs;
 
 use crate::client::ClientError;
 use crate::tree::{ILiasTree, IlNode};
+use crate::FRONTEND_BASE_PATH;
+
 
 #[get("/api/node")]
 pub fn get_node(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
@@ -28,7 +30,7 @@ pub async fn update(node: State<'_, Arc<ILiasTree>>) -> JsonValue {
 
 #[get("/")]
 pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
-    NamedFile::open("./dist/index.html").await
+    NamedFile::open(FRONTEND_BASE_PATH.join("dist/index.html")).await
 }
 
 #[get("/api/open/<file..>")]
@@ -39,7 +41,7 @@ pub fn open_file(file: PathBuf) -> std::result::Result<(), std::io::Error> {
 
 #[get("/favicon.ico")]
 pub async fn favicon() -> Result<NamedFile, std::io::Error> {
-    NamedFile::open("./dist/favicon-32x32.png").await
+    NamedFile::open(FRONTEND_BASE_PATH.join("dist/favicon-32x32.png")).await
 }
 
 #[derive(Deserialize)]
