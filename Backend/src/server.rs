@@ -8,7 +8,6 @@ use crate::client::ClientError;
 use crate::tree::{ILiasTree, IlNode};
 use crate::FRONTEND_BASE_PATH;
 
-
 #[get("/api/node")]
 pub fn get_node(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
     let node = node.get_root_node().unwrap().lock().unwrap();
@@ -35,7 +34,7 @@ pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
 
 #[derive(Deserialize)]
 pub struct File {
-    path: String
+    path: String,
 }
 
 #[post("/api/open", data = "<file>")]

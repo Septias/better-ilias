@@ -10,8 +10,17 @@ use ron::de::from_bytes;
 use ron::ser::{to_string_pretty, PrettyConfig};
 use scraper::{ElementRef, Selector};
 use serde::{Deserialize, Serialize};
-use std::{convert::TryInto, path::PathBuf, sync::{Arc, Mutex}};
-use tokio::{fs::{File, read_to_string}, io::{AsyncReadExt, AsyncWriteExt}, sync::mpsc::{self, UnboundedReceiver, UnboundedSender}, task::{self, JoinHandle}};
+use std::{
+    convert::TryInto,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+use tokio::{
+    fs::{read_to_string, File},
+    io::{AsyncReadExt, AsyncWriteExt},
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    task::{self, JoinHandle},
+};
 
 use crate::BACKEND_BASE_PATH;
 
@@ -77,16 +86,16 @@ impl ILiasTree {
         self.tree.as_ref()
     }
     pub async fn update_ilias(&self) -> Result<(), ClientError> {
-
         let credentials = if let Err(err) = update_ilias_tree(
             self.client.clone(),
             self.get_root_node().unwrap().clone(),
             self.sender.clone(),
         )
         .await
-        .unwrap(){
+        .unwrap()
+        {
             if let ClientError::NoToken = err {
-                if let Ok(raw_credenetials) = read_to_string("credentials.txt").await{
+                if let Ok(raw_credenetials) = read_to_string("credentials.txt").await {
                     let credentials: [String; 2] = raw_credenetials
                         .split('\n')
                         .map(|c| c.trim().to_owned())
@@ -139,7 +148,6 @@ impl ILiasTree {
             ))
         }
     }
-
 
     pub async fn download_files(&self) -> Result<(), anyhow::Error> {
         let client = self.client.clone();

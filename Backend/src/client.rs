@@ -105,7 +105,8 @@ impl IliasClient {
         let context = {
             let document = Html::parse_document(&resp_body);
             document
-                .select(&CONTEXT).next()
+                .select(&CONTEXT)
+                .next()
                 .expect("No Context found")
                 .value()
                 .attr("value")

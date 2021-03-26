@@ -5,6 +5,10 @@ name = "better_ilias"
 version = "1.0.0"
 build = "build.rs"
 
+[package.metadata.winres]
+FileDescription = "A progarm navigate Ilias and sync files to local filesystem"
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
