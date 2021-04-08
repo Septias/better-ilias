@@ -7,7 +7,7 @@ use log::error;
 use rocket_contrib::serve::StaticFiles;
 use std::{
     env::Args,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::Arc,
 };
 #[macro_use]
@@ -25,16 +25,12 @@ fn get_path(mut args: Args) -> Result<PathBuf, String> {
     let save_string = args.nth(1).unwrap();
     let parts = save_string.split(|a| a == '=').collect_vec();
 
-    if parts.len() < 2 {
+    if parts.len() < 2 || parts[0] != String::from("save_path"){
         return Err(String::from(
             " Argument must be of the form save_path=\"<path>\" ",
         ));
     }
-    if parts[0] != String::from("save_path") {
-        return Err(String::from(
-            " Argument must be of the form save_path=\"<path>\"",
-        ));
-    }
+   
     Ok(PathBuf::from(parts[1]))
 }
 

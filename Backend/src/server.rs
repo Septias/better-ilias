@@ -1,7 +1,7 @@
 use rocket::{response::NamedFile, State};
 use rocket_contrib::json::{json, Json, JsonValue};
 use serde::Deserialize;
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use tokio::fs;
 
 use crate::client::ClientError;
