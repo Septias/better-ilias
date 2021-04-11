@@ -30,7 +30,7 @@ On windows, if you want don't want the console to shown you can go to `Backend/s
 2. Copy you executable in that folder.
 3. Copy the `dist` folder from `Frondend` into "better_ilias"
 4. Copy `Backend/Rocket.toml` into that folder.
-5. Run it `./better_ilias.exe save_path="<some_path_maybe_onedrive>" 
+5. Run it `./better_ilias.exe save_path="<some_path_maybe_onedrive>"` from **within** the new folder
 
 #### dev
 in dev mode just use `cargo run` in `Backend` and it will work. Literally same goes for the frontend. 
