@@ -10,6 +10,7 @@ A tool for better interaction with the managment-website from Albert-Ludwigs-Uni
 # Installation
 If you don't want to build manually use this
 * Windows: [better_ilias.zip](https://github.com/Septias/BetterIlias/files/6291894/better_ilias.zip)
+* Mac: [better_ilias_macos.zip](https://github.com/Septias/BetterIlias/files/6292343/better_ilias_macos.zip)
 
 otherwise:
 
