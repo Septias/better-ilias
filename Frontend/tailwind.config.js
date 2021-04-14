@@ -19,6 +19,11 @@ module.exports = {
       },
       colors: {
         'accent': accent
+      },
+      outline: {
+        'main': main,
+        'light-main': light_main,
+        accent
       }
     },
   },

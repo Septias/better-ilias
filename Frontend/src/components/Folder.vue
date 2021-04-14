@@ -1,42 +1,56 @@
 <template >
   <span v-if="node.visible || edit_visibility">
-    <svg
-      focusable="false"
-      width="1em"
-      height="1em"
-      viewBox="0 0 24 24"
-      class="text-accent hover:text-white fill-current inline"
-      @click="expanded = !expanded"
-    >
-      <template v-if="node.children.length">
-        <path
-          v-if="expanded"
-          d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
-          fill="currentColor"
-        ></path>
-        <path
+    <div class="pluslogic">
+      <svg
+        focusable="false"
+        width="1em"
+        height="1em"
+        viewBox="0 0 24 24"
+        class="text-accent hover:text-white fill-current inline"
+        @click="expanded = !expanded"
+      >
+        <template v-if="node.children.length">
+          <path
+            v-if="expanded"
+            d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
+            fill="currentColor"
+          ></path>
+          <path
+            v-else
+            d="M8.593 18.157L14.25 12.5L8.593 6.843l-.707.707l4.95 4.95l-4.95 4.95l.707.707z"
+            fill="currentColor"
+          ></path>
+        </template>
+        <rect
           v-else
-          d="M8.593 18.157L14.25 12.5L8.593 6.843l-.707.707l4.95 4.95l-4.95 4.95l.707.707z"
-          fill="currentColor"
-        ></path>
-      </template>
-      <rect
-        v-else
-        x="9"
-        y="9"
-        width="5"
-        height="5"
-        style="fill: rgba(0, 0, 0, 0); stroke-width: 2; stroke: currentColor"
-      />
-    </svg>
+          x="9"
+          y="9"
+          width="5"
+          height="5"
+          style="fill: rgba(0, 0, 0, 0); stroke-width: 2; stroke: currentColor"
+        />
+      </svg>
+      <span
+        class="text-white select-none"
+        :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
+        @click.exact="handle_click"
+        @click.ctrl.exact="open_page"
+      >
+        <span class="p-1 rounded-sm hover:bg-accent">
+          {{ node.title }}
+        </span>
+      </span>
 
-    <span
-      class="p-1 rounded-sm hover:bg-accent text-white select-none"
-      :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
-      @click.exact="handle_click"
-      @click.ctrl.exact="open_page"
-      >{{ node.title }}</span
-    >
+      <bx-bx-edit
+        class="plus text-accent"
+        @click="
+          () => {
+            activate_note(node);
+          }
+        "
+      />
+    </div>
+
     <ul class="node_tree" :class="{ shrinked: !expanded }">
       <li
         v-for="(child, index) in node.children"
@@ -56,17 +70,27 @@
   </span>
 </template>
 
+<style lang="sass" scoped>
+.pluslogic:hover
+  > .plus
+    display: inline-block !important
+
+.pluslogic
+  > .plus
+    display: none
+</style>
+
 <script lang="ts">
 import { ref, defineComponent } from "vue";
 import File from "./File.vue";
 import DirectLink from "./DirectLink.vue";
 import Forum from "./Forum.vue";
-import { useVisibility } from "./compositions";
+import { useNotes, useVisibility } from "./compositions";
 
 export default defineComponent({
   components: { File, DirectLink, Forum },
   name: "Folder",
-  emits: ["set_invisible", "set_visible"],
+  emits: ["set_invisible", "set_visible", "new_note"],
   props: {
     node: {
       type: Object,
@@ -104,6 +128,9 @@ export default defineComponent({
         expanded.value = !expanded.value;
       }
     }
+
+    const { activate_note, reset_note, active, notes } = useNotes();
+
     const get_type = function (breed: any) {
       if (typeof breed == "object") {
         return Object.keys(breed)[0];
@@ -111,7 +138,7 @@ export default defineComponent({
         return breed;
       }
     };
-    return { expanded, edit_visibility, handle_click, get_type };
+    return { expanded, edit_visibility, handle_click, get_type, activate_note };
   },
 });
 </script>
