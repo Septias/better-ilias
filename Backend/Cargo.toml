@@ -1,35 +1,57 @@
 [package]
 authors = ["Septias <39526136+Septias@users.noreply.github.com>"]
+build = "build.rs"
 edition = "2018"
 name = "better_ilias"
 version = "1.0.0"
-build = "build.rs"
 
 [package.metadata.winres]
-FileDescription = "A progarm navigate Ilias and sync files to local filesystem"
+FileDescription = "A program to navigate Ilias and sync files to the local filesystem"
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
-
 [dependencies]
-anyhow = "*"
-env_logger = "0.8.3"
+dotenv = "0.15.0"
 futures = "0.3.13"
-hyper = {version = "0.14.4", features = ["client", "http1"]}
-hyper-tls = "0.5.0"
 itertools = "*"
 lazy_static = "1.4.0"
-log = "0.4.14"
 open = "1.6.0"
-reqwest = {version = "*", features = ["cookies", "blocking"]}
-rocket = {git = "https://github.com/SergioBenitez/Rocket"}
-rocket_contrib = {git = "https://github.com/SergioBenitez/Rocket"}
 ron = "0.6.4"
+
+env_logger = "0.8.3"
+log = "0.4.14"
+
+hyper-tls = "0.5.0"
 scraper = "0.12.0"
-serde = {version = "1.0.124", features = ["rc"]}
-thiserror = "*"
-tokio = {version = "1.4.0", features = ["full"]}
-urlencoding = "*"
+urlencoding = "1.1.1"
+
+anyhow = "1.0.40"
+thiserror = "1.0.24"
+
+[dependencies.hyper]
+features = ["client", "http1"]
+version = "0.14.4"
+
+[dependencies.serde]
+features = ["rc"]
+version = "1.0.125"
+
+[dependencies.tokio]
+features = ["full"]
+version = "1.4.0"
+
+[dependencies.reqwest]
+features = ["cookies", "blocking"]
+version = "0.11.2"
+
+[dependencies.rocket_contrib]
+default-features = false
+features = ["diesel_sqlite_pool", "json", "serve"]
+git = "https://github.com/SergioBenitez/Rocket"
+
+[dependencies.rocket]
+git = "https://github.com/SergioBenitez/Rocket"
+
+[dependencies.diesel]
+version = "1.4.6"
