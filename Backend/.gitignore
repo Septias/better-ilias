@@ -3,5 +3,5 @@ structure.ron
 sync.ron
 debug.log
 credentials.txt
-sqlite.lib
+sqlite3.lib
 db.sqlite

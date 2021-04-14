@@ -1,7 +1,24 @@
 use rocket::{response::NamedFile, State};
 use rocket_contrib::json::{json, Json, JsonValue};
 use serde::Deserialize;
+use crate::client::ClientError;
+use crate::schema::notes;
+use crate::tree::{IlNode, IliasTree};
+use diesel::{QueryDsl, RunQueryDsl};
+use itertools::Itertools;
+use lazy_static::lazy_static;
+use rocket::{
+    fairing::AdHoc,
+    response::{Debug, NamedFile},
+    State,
+};
+use rocket_contrib::{
+    json::{json, Json, JsonValue},
+    serve::StaticFiles,
+};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::{env::Args, path::PathBuf};
 use tokio::fs;
 
 use crate::client::ClientError;
@@ -10,6 +27,24 @@ use crate::FRONTEND_BASE_PATH;
 
 #[get("/api/node")]
 pub fn get_node(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
+#[derive(Debug, Clone, Deserialize, Serialize, Queryable, Insertable)]
+pub struct Note {
+    pub uri: String,
+    pub course: String,
+    pub body: String,
+}
+
+#[database("sqlite_db")]
+struct NotesDB(diesel::SqliteConnection);
+
+#[get("/notes")]
+async fn get_notes(conn: NotesDB) -> Result<Json<Vec<String>>> {
+    let ids = conn
+        .run(move |conn| notes::table.select(notes::course).load(conn))
+        .await?;
+
+    Ok(Json(ids))
+}
     let node = node.get_root_node().unwrap().lock().unwrap();
     Json(node.clone())
 }
@@ -79,4 +114,28 @@ pub async fn set_credentials(
 
         json!({"status": "ok"})
     }
+}
+
+pub fn stage() -> AdHoc {
+    AdHoc::on_ignite("Diesel SQLite Stage", |rocket| async {
+        rocket
+            .attach(NotesDB::fairing())
+            //.attach(AdHoc::on_ignite("Diesel Migrations", run_migrations))
+            .mount("/", routes![index])
+            .mount(
+                "/api",
+                routes![
+                    get_node,
+                    get_notes,
+                    open_file,
+                    update,
+                    set_credentials,
+                    favicon
+                ],
+            )
+            .mount(
+                "/assets/",
+                StaticFiles::from(FRONTEND_BASE_PATH.join("dist/assets")),
+            )
+    })
 }
