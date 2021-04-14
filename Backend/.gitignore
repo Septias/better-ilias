@@ -1,3 +1,7 @@
 /target
 structure.ron
-data
+sync.ron
+debug.log
+credentials.txt
+sqlite.lib
+db.sqlite
