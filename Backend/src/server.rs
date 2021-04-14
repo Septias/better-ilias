@@ -1,6 +1,3 @@
-use rocket::{response::NamedFile, State};
-use rocket_contrib::json::{json, Json, JsonValue};
-use serde::Deserialize;
 use crate::client::ClientError;
 use crate::schema::notes;
 use crate::tree::{IlNode, IliasTree};
@@ -21,12 +18,46 @@ use std::sync::Arc;
 use std::{env::Args, path::PathBuf};
 use tokio::fs;
 
-use crate::client::ClientError;
-use crate::tree::{ILiasTree, IlNode};
-use crate::FRONTEND_BASE_PATH;
+type Result<T, E = Debug<diesel::result::Error>> = std::result::Result<T, E>;
 
-#[get("/api/node")]
-pub fn get_node(node: State<Arc<ILiasTree>>) -> Json<IlNode> {
+fn get_path(mut args: Args) -> Result<PathBuf, String> {
+    let save_string = args.nth(1).unwrap();
+    let parts = save_string.split(|a| a == '=').collect_vec();
+
+    if parts.len() < 2 || parts[0] != String::from("save_path") {
+        return Err(String::from(
+            " Argument must be of the form save_path=\"<path>\" ",
+        ));
+    }
+
+    Ok(PathBuf::from(parts[1]))
+}
+
+lazy_static! {
+    pub static ref FRONTEND_BASE_PATH: PathBuf = {
+        #[cfg(debug_assertions)]
+        return PathBuf::from("../Frontend/");
+
+        #[cfg(not(debug_assertions))]
+        return PathBuf::from("./");
+    };
+    pub static ref BACKEND_BASE_PATH: PathBuf = {
+        let args = std::env::args();
+        if args.len() > 1 {
+            get_path(args).unwrap_or_else(|err| {
+                error!("{}", err);
+                PathBuf::from("./")
+            })
+        } else {
+            if cfg!(debug_assertions) {
+                PathBuf::from("./data/")
+            } else {
+                PathBuf::from("./")
+            }
+        }
+    };
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, Queryable, Insertable)]
 pub struct Note {
     pub uri: String,
@@ -45,12 +76,15 @@ async fn get_notes(conn: NotesDB) -> Result<Json<Vec<String>>> {
 
     Ok(Json(ids))
 }
+
+#[get("/node")]
+pub fn get_node(node: State<Arc<IliasTree>>) -> Json<IlNode> {
     let node = node.get_root_node().unwrap().lock().unwrap();
     Json(node.clone())
 }
 
-#[get("/api/update")]
-pub async fn update(node: State<'_, Arc<ILiasTree>>) -> JsonValue {
+#[get("/update")]
+pub async fn update(node: State<'_, Arc<IliasTree>>) -> JsonValue {
     if let Err(err) = node.update_ilias().await {
         match err {
             ClientError::NoToken => return json!({"status": "set_token"}),
@@ -72,7 +106,7 @@ pub struct File {
     path: String,
 }
 
-#[post("/api/open", data = "<file>")]
+#[post("/open", data = "<file>")]
 pub fn open_file(file: Json<File>) -> std::result::Result<(), std::io::Error> {
     open::that(&file.path)?;
     Ok(())
@@ -90,10 +124,10 @@ pub struct Credentials {
     persistent: bool,
 }
 
-#[post("/api/credentials", data = "<credentials>")]
+#[post("/credentials", data = "<credentials>")]
 pub async fn set_credentials(
     credentials: Json<Credentials>,
-    node: State<'_, Arc<ILiasTree>>,
+    node: State<'_, Arc<IliasTree>>,
 ) -> JsonValue {
     let creds = [
         credentials.username.to_owned(),

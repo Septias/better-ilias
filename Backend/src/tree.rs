@@ -1,7 +1,4 @@
-use crate::{
-    client::{ClientError, IliasClient},
-    IdSize,
-};
+use crate::client::{ClientError, IliasClient};
 use futures::future::join_all;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -22,7 +19,7 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
-use crate::BACKEND_BASE_PATH;
+use crate::server::BACKEND_BASE_PATH;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
@@ -74,14 +71,14 @@ lazy_static! {
     pub static ref IMAGE: Selector = Selector::parse(".ilListItemIcon").unwrap();
 }
 
-pub struct ILiasTree {
+pub struct IliasTree {
     pub client: Arc<IliasClient>,
     tree: Option<Arc<Mutex<IlNode>>>,
     receiver: Mutex<Option<UnboundedReceiver<Arc<Mutex<IlNode>>>>>,
     sender: UnboundedSender<Arc<Mutex<IlNode>>>,
 }
 
-impl ILiasTree {
+impl IliasTree {
     pub fn get_root_node(&self) -> Option<&Arc<Mutex<IlNode>>> {
         self.tree.as_ref()
     }
@@ -130,20 +127,20 @@ impl ILiasTree {
 
     pub async fn from_file(
         file: PathBuf,
-    ) -> Result<ILiasTree, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<IliasTree, Box<dyn std::error::Error + Send + Sync>> {
         if let Ok(mut file) = File::open(file).await {
             let mut buffer = vec![];
             file.read_to_end(&mut buffer).await?;
             let tree = from_bytes(&buffer)?;
             let (sender, receiver) = mpsc::unbounded_channel();
-            Ok(ILiasTree {
+            Ok(IliasTree {
                 client: Arc::new(IliasClient::new()),
                 tree: Some(tree),
                 receiver: Mutex::new(Some(receiver)),
                 sender,
             })
         } else {
-            Ok(ILiasTree::new(
+            Ok(IliasTree::new(
                 &"ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems",
             ))
         }
@@ -191,7 +188,7 @@ impl ILiasTree {
             visible: true,
         };
         let (sender, receiver) = mpsc::unbounded_channel();
-        ILiasTree {
+        IliasTree {
             client: Arc::new(IliasClient::new()),
             tree: Some(Arc::new(Mutex::new(root_node))),
             receiver: Mutex::new(Some(receiver)),
@@ -374,7 +371,7 @@ pub fn update_ilias_tree(
     })
 }
 
-fn _set_ids(node: Arc<Mutex<IlNode>>, id: &mut IdSize, parent: IdSize) {
+fn _set_ids(node: Arc<Mutex<IlNode>>, id: &mut u16, parent: u16) {
     let mut node = node.lock().unwrap();
     node.id = *id;
     node.parent = parent;
