@@ -1,16 +1,22 @@
 <template>
-  <h1 class="text-5xl m-5">Better Ilias</h1>
-  <div
-    v-for="(child, index) in root_node.children"
-    :key="index"
-    class="ml-5 cursor-pointer"
-  >
-    <Folder
-      :index="index"
-      @set_invisible="handle_set_inivisible"
-      @set_visible="handle_set_visible"
-      :node="child"
-    ></Folder>
+  <div class="h-screen">
+    <div :style="{ 'min-height': heights.ilas }">
+      <h1 class="text-5xl m-5">Better Ilias</h1>
+      <div
+        v-for="(child, index) in root_node.children"
+        :key="index"
+        class="ml-5 cursor-pointer"
+      >
+        <Folder
+          :index="index"
+          @set_invisible="handle_set_inivisible"
+          @set_visible="handle_set_visible"
+          :node="child"
+        ></Folder>
+      </div>
+    </div>
+    <hr class="cursor-move bg-accent" @drag="resize" />
+    <div class="bg-light-main" :style="{ 'min-height': heights.notes }"></div>
   </div>
   <div class="right-0 top-0 fixed">
     <!--<div
@@ -70,7 +76,7 @@
         class="block w-full"
         type="password"
       />
-      <input class="mr-1" type="checkbox" v-model="persistent"/>
+      <input class="mr-1" type="checkbox" v-model="persistent" />
       <p class="inline-block text-sm">Angemeldet bleiben</p>
       <button
         type="submit"
@@ -95,10 +101,11 @@
     @apply mb-3
 </style>
 
-<script>
+<script lang="ts">
 import { defineComponent, ref } from "vue";
 import axios from "axios";
 import { useVisibility } from "./compositions";
+import { useMouse } from "@vueuse/core";
 
 export default defineComponent({
   name: "Ilias",
@@ -129,7 +136,7 @@ export default defineComponent({
     let updating = ref(false);
     const update = () => {
       let start = Date.now();
-      if (!updating.value){
+      if (!updating.value) {
         updating.value = true;
         axios
           .get("api/update")
@@ -149,7 +156,7 @@ export default defineComponent({
       }
     };
 
-    update();
+    //update();
 
     const login = ref(false);
 
@@ -173,7 +180,7 @@ export default defineComponent({
           if (resp.data.status == "ok") {
             wrong.value = "";
             login.value = false;
-            update()
+            update();
           } else {
             wrong.value = resp.data.status;
           }
@@ -187,6 +194,17 @@ export default defineComponent({
     const disable_login = () => {
       if (!requesting.value) {
         login.value = !login.value;
+      }
+    };
+
+    const { x, y, source } = useMouse();
+
+    const heights = ref({ ilas: "60%", notes: "40%" });
+    const resize = (e: DragEvent) => {
+      console.log(e.y);
+      if (e.y != 0) {
+        heights.value.ilas = `${(e.y / window.innerHeight) * 100}%`;
+        heights.value.notes = `${(1 - e.y / window.innerHeight) * 100}%`;
       }
     };
 
@@ -205,6 +223,9 @@ export default defineComponent({
       wrong,
       requesting,
       disable_login,
+      resize,
+      heights,
+      y,
     };
   },
 });
