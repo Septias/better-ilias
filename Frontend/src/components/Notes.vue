@@ -34,22 +34,11 @@
 <script>
 import { useNotes } from "./compositions";
 
-const mock_nodes = [
-  { course: "Rechnernetze", uri: "htt", body: "a" },
-  { course: "Programmieren", uri: "ppt", body: "b" },
-];
-
 export default {
   name: "Notes",
 
   async setup(props) {
-    const {
-      activate_note,
-      reset_note,
-      active,
-      get_notes,
-      hide_note,
-    } = useNotes();
+    const { reset_note, active, get_notes, hide_note } = useNotes();
 
     let notes = await get_notes();
 
