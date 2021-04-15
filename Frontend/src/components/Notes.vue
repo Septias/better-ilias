@@ -36,8 +36,10 @@ const mock_nodes = [
 export default {
   name: "Notes",
 
-  setup(props) {
-    const { activate_note, reset_note, active, notes } = useNotes();
+  async setup(props) {
+    const { activate_note, reset_note, active, get_notes } = useNotes();
+
+    let notes = await get_notes();
 
     return {
       reset_note,

@@ -1,10 +1,11 @@
 import { computed, ref } from "vue"
+import { create_note, fetch_notes, update_note } from "../api/notes"
+import { IlNode } from "./IlTypes"
 
 
 let edit_visibility = ref(false)
 
 export function useVisibility() {
-
   return { edit_visibility }
 }
 
@@ -12,32 +13,61 @@ export function useVisibility() {
 let notes = ref([] as Note[])
 let active = ref(undefined as Note | undefined)
 
-interface Note {
+export interface Note {
   body: string,
   uri: string,
   course: string,
 }
 
-interface Node {
-  uri: String,
-  title: String
+let loaded = false
+async function get_notes() {
+  if (!loaded) {
+    notes.value.push(...(await fetch_notes()).map((note: Note) => new Proxy(note, handler)));
+    loaded = true
+    return notes
+  }
+  return notes
 }
 
-const activate_note = (node: Node) => {
+// this is a kinda cheeky implementation since all Note-objects share the same update-timeout
+let timeout: undefined | number = undefined
+
+let handler = {
+  set: function (obj: Note, prop: string | symbol, val: any, receiver: any) {
+
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    console.log("update for", obj.course)
+    timeout = setTimeout(() => {
+      update_note(obj)
+    }, 750)
+
+    //obj[prop as keyof typeof Note] = val
+    return Reflect.set(obj, prop, val)
+  }
+} as ProxyHandler<Note>
+
+
+async function activate_note(node: IlNode) {
+  await get_notes() // make sure notes from server are loaded
   const note = notes.value.find((note) => note.uri == node.uri);
   if (!note) {
-    let new_note = {
+    let new_note = new Proxy({
       uri: node.uri,
       course: node.title.slice(0, 14) + '...',
       body: ""
-    } as Note
-    notes.value.push(new_note)
-    active.value = new_note
+    }, handler) as Note
+
+    let resp = await create_note(new_note)
+    if (resp.status == 201) {
+      notes.value.push(new_note)
+      active.value = new_note
+    }
   } else {
     active.value = note
   }
 }
-
 const reset_note = () => {
   active.value = undefined
 }
@@ -47,7 +77,7 @@ export function useNotes() {
     activate_note,
     reset_note,
     active,
-    notes
+    get_notes
   }
 }
 

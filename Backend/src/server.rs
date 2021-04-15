@@ -1,12 +1,12 @@
 use crate::client::ClientError;
 use crate::schema::notes;
 use crate::tree::{IlNode, IliasTree};
-use diesel::{QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use rocket::{
     fairing::AdHoc,
-    response::{Debug, NamedFile},
+    response::{status::Created, Debug, NamedFile},
     State,
 };
 use rocket_contrib::{
@@ -58,7 +58,10 @@ lazy_static! {
     };
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Queryable, Insertable)]
+#[derive(
+    Debug, Clone, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset,
+)]
+#[primary_key(uri)]
 pub struct Note {
     pub uri: String,
     pub course: String,
@@ -68,13 +71,37 @@ pub struct Note {
 #[database("sqlite_db")]
 struct NotesDB(diesel::SqliteConnection);
 
-#[get("/notes")]
-async fn get_notes(conn: NotesDB) -> Result<Json<Vec<String>>> {
-    let ids = conn
-        .run(move |conn| notes::table.select(notes::course).load(conn))
-        .await?;
+#[get("/notes/list")]
+async fn get_notes(conn: NotesDB) -> Result<Json<Vec<Note>>> {
+    let ids = conn.run(move |conn| notes::table.load(conn)).await?;
 
     Ok(Json(ids))
+}
+
+#[post("/notes/create", data = "<note>")]
+async fn create_note(db: NotesDB, note: Json<Note>) -> Result<Created<Json<Note>>> {
+    let note_value = note.clone();
+    db.run(move |conn| {
+        diesel::insert_into(notes::table)
+            .values(&note_value)
+            .execute(conn)
+    })
+    .await?;
+
+    Ok(Created::new("/").body(note))
+}
+
+#[post("/notes/update", data = "<note>")]
+async fn update_note(db: NotesDB, note: Json<Note>) -> Result<&'static str> {
+    db.run(move |conn| {
+        diesel::update(notes::table)
+            .filter(notes::dsl::uri.eq(&note.uri))
+            .set(&*note)
+            .execute(conn)
+    })
+    .await?;
+
+    Ok("ok")
 }
 
 #[get("/node")]
@@ -164,7 +191,9 @@ pub fn stage() -> AdHoc {
                     open_file,
                     update,
                     set_credentials,
-                    favicon
+                    favicon,
+                    create_note,
+                    update_note
                 ],
             )
             .mount(

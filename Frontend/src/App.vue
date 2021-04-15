@@ -9,7 +9,9 @@
       </Suspense>
     </div>
     <div v-if="note_panel" class="flex-grow flex-shrink overflow-y-auto">
-      <Notes></Notes>
+      <Suspense>
+        <Notes />
+      </Suspense>
     </div>
   </div>
 </template>
@@ -28,7 +30,7 @@ import { useNotes } from "./components/compositions";
 export default defineComponent({
   name: "App",
   setup() {
-    const { activate_note, reset_note, active, notes } = useNotes();
+    const { activate_note, reset_note, active, get_notes } = useNotes();
 
     // prob useless
     const note_panel = computed(() => {
