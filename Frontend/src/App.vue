@@ -5,7 +5,7 @@
       :class="{ 'flex-grow': !note_panel, test: note_panel }"
     >
       <Suspense>
-        <Ilias />
+        <Ilias @login_pls="login = true" />
       </Suspense>
     </div>
     <div v-if="note_panel" class="flex-grow flex-shrink overflow-y-auto">
@@ -13,6 +13,7 @@
         <Notes />
       </Suspense>
     </div>
+    <Login v-if="login" @close="login = false" />
   </div>
 </template>
 
@@ -30,7 +31,9 @@ import { useNotes } from "./components/compositions";
 export default defineComponent({
   name: "App",
   setup() {
-    const { activate_note, reset_note, active, get_notes } = useNotes();
+    const { active } = useNotes();
+
+    const login = ref(false);
 
     // prob useless
     const note_panel = computed(() => {
@@ -39,6 +42,7 @@ export default defineComponent({
 
     return {
       note_panel,
+      login,
     };
   },
 });
