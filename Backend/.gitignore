@@ -4,6 +4,5 @@ sync.ron
 debug.log
 credentials.txt
 sqlite3.lib
-db.sqlite
-db.sqlite-*
+db.*
 data/Studium
