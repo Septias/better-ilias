@@ -14,7 +14,7 @@
   </div>
 
   <div class="right-0 top-0 fixed">
-    <UpdateIcon :updating="updating" @click.native="update"></UpdateIcon>
+    <UpdateIcon :updating="updating" @click="update"></UpdateIcon>
   </div>
   <div
     class="fixed h-full w-full flex justify-center items-center top-0 bg-main bg-opacity-50"

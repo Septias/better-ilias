@@ -24,7 +24,7 @@
 import { ref } from "vue";
 
 export default {
-  name: "Notes",
+  name: "Update Icon",
   props: {
     updating: Boolean,
   },

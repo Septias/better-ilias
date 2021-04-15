@@ -5,4 +5,5 @@ debug.log
 credentials.txt
 sqlite3.lib
 db.sqlite
+db.sqlite-*
 data/Studium

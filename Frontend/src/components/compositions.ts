@@ -10,8 +10,9 @@ export function useVisibility() {
 }
 
 
-let notes = ref([] as Note[])
+let all_notes = ref([] as Note[])
 let active = ref(undefined as Note | undefined)
+let visible_notes = ref([] as String[]); // TODO: Make this a set
 
 export interface Note {
   body: string,
@@ -19,10 +20,14 @@ export interface Note {
   course: string,
 }
 
+let notes = computed(() => {
+  return all_notes.value.filter((a) => visible_notes.value.find((uri) => uri == a.uri))
+})
+
 let loaded = false
 async function get_notes() {
   if (!loaded) {
-    notes.value.push(...(await fetch_notes()).map((note: Note) => new Proxy(note, handler)));
+    all_notes.value.push(...(await fetch_notes()).map((note: Note) => new Proxy(note, handler)));
     loaded = true
     return notes
   }
@@ -38,7 +43,6 @@ let handler = {
     if (timeout) {
       clearTimeout(timeout)
     }
-    console.log("update for", obj.course)
     timeout = setTimeout(() => {
       update_note(obj)
     }, 750)
@@ -51,7 +55,7 @@ let handler = {
 
 async function activate_note(node: IlNode) {
   await get_notes() // make sure notes from server are loaded
-  const note = notes.value.find((note) => note.uri == node.uri);
+  const note = all_notes.value.find((note) => note.uri == node.uri);
   if (!note) {
     let new_note = new Proxy({
       uri: node.uri,
@@ -61,23 +65,40 @@ async function activate_note(node: IlNode) {
 
     let resp = await create_note(new_note)
     if (resp.status == 201) {
-      notes.value.push(new_note)
+      all_notes.value.push(new_note)
+      visible_notes.value.push(new_note.uri)
       active.value = new_note
     }
   } else {
     active.value = note
+    visible_notes.value.push(node.uri)
   }
 }
 const reset_note = () => {
   active.value = undefined
 }
 
+const hide_note = (note_uri: string) => {
+  const index = visible_notes.value.indexOf(note_uri);
+  visible_notes.value.splice(index, 1)
+
+  if (note_uri == active.value?.uri) {
+    if (notes.value.length > 0) {
+      active.value = notes.value[0]
+    } else {
+      active.value = undefined
+    }
+  }
+}
+
+
 export function useNotes() {
   return {
     activate_note,
     reset_note,
     active,
-    get_notes
+    get_notes,
+    hide_note
   }
 }
 
