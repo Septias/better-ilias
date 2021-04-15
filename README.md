@@ -6,6 +6,8 @@ A tool for better interaction with the managment-website from Albert-Ludwigs-Uni
 ![image](https://user-images.githubusercontent.com/39526136/111999674-7c42d800-8b1d-11eb-8462-b31d891e3d5a.png)
 * sync all files from ilias to local file system and open them through the frontend (no littered download folder)
 * doesn't grill eyes when it's late
+* create notes for your different courses  
+![image](https://user-images.githubusercontent.com/39526136/114848177-b894eb80-9dde-11eb-9022-939e089322da.png)
 
 # Installation
 If you don't want to build manually use this
