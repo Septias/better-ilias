@@ -2,6 +2,7 @@
   <div class="flex flex-col h-screen">
     <div
       class="border-accent"
+      style="height: 60%"
       :class="{ 'flex-grow': !note_panel, test: note_panel }"
     >
       <Suspense>
