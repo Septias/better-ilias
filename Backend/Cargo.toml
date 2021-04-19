@@ -19,6 +19,8 @@ lazy_static = "1.4.0"
 open = "1.6.0"
 ron = "0.6.4"
 
+libsqlite3-sys = {version = "*", features = ["bundled"]}
+
 env_logger = "0.8.3"
 log = "0.4.14"
 
@@ -27,6 +29,7 @@ scraper = "0.12.0"
 urlencoding = "1.1.1"
 
 anyhow = "1.0.40"
+diesel_migrations = "1.3"
 thiserror = "1.0.24"
 
 [dependencies.hyper]
@@ -54,4 +57,5 @@ git = "https://github.com/SergioBenitez/Rocket"
 git = "https://github.com/SergioBenitez/Rocket"
 
 [dependencies.diesel]
+features = ["sqlite"]
 version = "1.4.6"

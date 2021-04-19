@@ -1,13 +1,13 @@
 use crate::client::ClientError;
 use crate::schema::notes;
 use crate::tree::{IlNode, IliasTree};
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, RunQueryDsl};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use rocket::{
     fairing::AdHoc,
     response::{status::Created, Debug, NamedFile},
-    State,
+    Build, Rocket, State,
 };
 use rocket_contrib::{
     json::{json, Json, JsonValue},
@@ -177,10 +177,27 @@ pub async fn set_credentials(
     }
 }
 
+async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
+    // This macro from `diesel_migrations` defines an `embedded_migrations`
+    // module containing a function named `run` that runs the migrations in the
+    // specified directory, initializing the database.
+    embed_migrations!("./migrations");
+
+    let conn = NotesDB::get_one(&rocket)
+        .await
+        .expect("database connection");
+    conn.run(|c| embedded_migrations::run(c))
+        .await
+        .expect("diesel migrations");
+
+    rocket
+}
+
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Diesel SQLite Stage", |rocket| async {
         rocket
             .attach(NotesDB::fairing())
+            .attach(AdHoc::on_ignite("Diesel Migrations", run_migrations))
             //.attach(AdHoc::on_ignite("Diesel Migrations", run_migrations))
             .mount("/", routes![index])
             .mount(
