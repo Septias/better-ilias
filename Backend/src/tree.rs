@@ -21,6 +21,8 @@ use tokio::{
 
 use crate::server::BACKEND_BASE_PATH;
 
+const ILIAS_ROOT: &str = "ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems";
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
     pub id: u16,
@@ -92,8 +94,8 @@ impl IliasTree {
         .unwrap()
         {
             if let ClientError::NoToken = err {
-                if let Ok(raw_credenetials) = read_to_string("credentials.txt").await {
-                    let credentials: [String; 2] = raw_credenetials
+                if let Ok(raw_credentials) = read_to_string("credentials.txt").await {
+                    let credentials: [String; 2] = raw_credentials
                         .split('\n')
                         .map(|c| c.trim().to_owned())
                         .collect_vec()
@@ -141,7 +143,7 @@ impl IliasTree {
             })
         } else {
             Ok(IliasTree::new(
-                &"ilias.php?baseClass=ilPersonalDesktopGUI&cmd=jumpToSelectedItems",
+                &ILIAS_ROOT,
             ))
         }
     }
