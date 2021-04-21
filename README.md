@@ -1,6 +1,7 @@
 # BetterIlias
 A tool for better interaction with the managment-website from Albert-Ludwigs-Universität Freiburg.
 
+
 ## Features
 * interatact with ilias through a nice frontend which doesn't need 2sec to load
 ![image](https://user-images.githubusercontent.com/39526136/111999674-7c42d800-8b1d-11eb-8462-b31d891e3d5a.png)
@@ -11,8 +12,7 @@ A tool for better interaction with the managment-website from Albert-Ludwigs-Uni
 
 # Installation
 If you don't want to build manually use this
-* Windows: [better_ilias.zip](https://github.com/Septias/BetterIlias/files/6291894/better_ilias.zip)
-* Mac: [better_ilias_macos.zip](https://github.com/Septias/BetterIlias/files/6292343/better_ilias_macos.zip)
+* Windows: [build_1618847470.zip](https://github.com/Septias/BetterIlias/files/6351216/build_1618847470.zip)
 
 otherwise:
 
