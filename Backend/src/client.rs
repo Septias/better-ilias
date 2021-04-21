@@ -205,13 +205,20 @@ impl IliasClient {
             path.set_extension::<&str>(extension);
             path.clone()
         };
-        create_dir_all(path.parent().unwrap())
-            .await
-            .unwrap_or_else(|_| panic!("{:?}", path));
-        let mut file = File::create(path).await?;
-        while let Some(chunk) = resp.body_mut().data().await {
-            let chunk = chunk?;
-            file.write_all(&chunk).await?;
+
+        if path.extension().unwrap() == "mp4" {
+            *file_node.lock().unwrap().breed.get_local().unwrap() = false;
+        } 
+
+        if *file_node.lock().unwrap().breed.get_local().unwrap() {
+            create_dir_all(path.parent().unwrap())
+                .await
+                .unwrap_or_else(|_| panic!("{:?}", path));
+            let mut file = File::create(path).await?;
+            while let Some(chunk) = resp.body_mut().data().await {
+                let chunk = chunk?;
+                file.write_all(&chunk).await?;
+            }
         }
 
         Ok(())

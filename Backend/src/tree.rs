@@ -53,6 +53,7 @@ pub enum IlNodeType {
     Streams,
 }
 
+
 impl IlNodeType {
     pub fn get_path(&mut self) -> Option<&mut PathBuf> {
         if let Self::File { path, .. } = self {
@@ -64,6 +65,14 @@ impl IlNodeType {
     pub fn is_file(&self) -> bool {
         matches!(self, IlNodeType::File { .. })
     }
+    pub fn get_local(&mut self) -> Option<&mut bool> {
+        if let Self::File { local, .. } = self {
+            Some(local)
+        } else {
+            None
+        }
+    }
+
 }
 
 lazy_static! {
@@ -266,7 +275,7 @@ impl<'a> HypNode<'a> {
             Some("frm") => Some(IlNodeType::Forum),
             Some("webr") => Some(IlNodeType::DirectLink),
             Some("file") => Some(IlNodeType::File {
-                local: false,
+                local: true,
                 path,
                 version: self.version().unwrap_or(0) as u16,
             }),
