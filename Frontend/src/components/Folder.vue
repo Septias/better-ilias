@@ -35,6 +35,7 @@
         :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
         @click.exact="handle_click"
         @click.ctrl.exact="open_page"
+        @click.shift.exact="open_folder"
       >
         <span class="p-1 rounded-sm hover:bg-accent">
           {{ node.title }}
@@ -81,11 +82,13 @@
 </style>
 
 <script lang="ts">
-import { ref, defineComponent } from "vue";
+import { ref, defineComponent, PropType } from "vue";
 import File from "./File.vue";
 import DirectLink from "./DirectLink.vue";
 import Forum from "./Forum.vue";
 import { useNotes, useVisibility } from "./compositions";
+import axios from "axios";
+import { IlNode } from "./IlTypes";
 
 export default defineComponent({
   components: { File, DirectLink, Forum },
@@ -93,7 +96,7 @@ export default defineComponent({
   emits: ["set_invisible", "set_visible", "new_note"],
   props: {
     node: {
-      type: Object,
+      type: Object as PropType<IlNode>,
       required: true,
     },
     index: {
@@ -129,7 +132,13 @@ export default defineComponent({
       }
     }
 
-    const { activate_note, reset_note, active, notes } = useNotes();
+    const { activate_note, reset_note, active } = useNotes();
+
+    function open_folder() {
+      axios.post("/api/open/", {
+        path: props.node.breed.Folder.path,
+      });
+    }
 
     const get_type = function (breed: any) {
       if (typeof breed == "object") {
@@ -138,7 +147,14 @@ export default defineComponent({
         return breed;
       }
     };
-    return { expanded, edit_visibility, handle_click, get_type, activate_note };
+    return {
+      expanded,
+      edit_visibility,
+      handle_click,
+      get_type,
+      activate_note,
+      open_folder,
+    };
   },
 });
 </script>
