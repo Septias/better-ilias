@@ -346,14 +346,19 @@ pub fn update_ilias_tree(
                                             };
                                         }
                                         Some(node)
-                                    } else if let Some(node) = hypnode.into_node(path.clone()) {
-                                        Some(if node.breed.is_file() {
+                                    } else if let Some(mut node) = hypnode.into_node(path.clone()) {
+                                        // second check is also done when downloading
+                                        #[cfg(not(debug_assertions))]
+                                        return Some(if node.breed.is_file() && *node.breed.get_local().unwrap() == true {
                                             let node = Arc::new(Mutex::new(node));
                                             file_channel.send(node.clone()).unwrap();
                                             node
                                         } else {
                                             Arc::new(Mutex::new(node))
-                                        })
+                                        });
+                                        
+                                        #[cfg(debug_assertions)]
+                                        Some(Arc::new(Mutex::new(node)))
                                     } else {
                                         None
                                     }
