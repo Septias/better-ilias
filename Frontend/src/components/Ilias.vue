@@ -1,7 +1,7 @@
 <template>
   <h1 class="text-5xl m-5">Better Ilias</h1>
   <div
-    v-for="(child, index) in root_node.children"
+    v-for="(child, index) in folders"
     :key="index"
     class="ml-5 cursor-pointer"
   >
@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from "vue";
+import { computed, defineComponent, ref } from "vue";
 import axios from "axios";
 import { useVisibility } from "./compositions";
 
@@ -74,6 +74,8 @@ export default defineComponent({
       }
     };
 
+    const folders = computed(() => root_node.value.children.filter((node) => node.breed.hasOwnProperty('Folder')));
+    
     update();
 
     return {
@@ -83,6 +85,7 @@ export default defineComponent({
       edit_visibility,
       updating,
       update,
+      folders
     };
   },
 });
