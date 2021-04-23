@@ -89,9 +89,11 @@ import Forum from "./Forum.vue";
 import { useNotes, useVisibility } from "./compositions";
 import axios from "axios";
 import { IlNode } from "./IlTypes";
+import Video from "./Video.vue";
+import Exercise from "./Exercise.vue";
 
 export default defineComponent({
-  components: { File, DirectLink, Forum },
+  components: { File, DirectLink, Forum, Video, Exercise },
   name: "Folder",
   emits: ["set_invisible", "set_visible", "new_note"],
   props: {
