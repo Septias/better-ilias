@@ -225,9 +225,9 @@ impl<'a> HypNode<'a> {
         let img = self.element.select(&IMAGE).last()?;
         let img_src = img.value().attr("src")?;
 
-        const START_INDEX: usize = 32; // "./templates/default/images/icon_fold.svg" icon_ ends at 31
-        let end_index = START_INDEX + img_src[START_INDEX..].find(".svg")?;
-        Some(&img_src[START_INDEX..end_index])
+        let start_index: usize = img_src.find("icon_")? + 5; 
+        let end_index = start_index + img_src[start_index..].find(".svg")?;
+        Some(&img_src[start_index..end_index])
     }
     fn version(&self) -> Option<usize> {
         let inner_html = self.element.select(&PROPERTY).nth(2)?.inner_html();
@@ -260,7 +260,19 @@ impl<'a> HypNode<'a> {
     }
     pub fn into_node(self, mut path: PathBuf) -> Option<IlNode> {
         let title = self.title()?;
-        path.push(&title.replace("/", "_").replace(":", "_"));
+        
+        let mut chars = title.chars();
+        let start = chars.next().unwrap();
+        let rest = chars.map( |character|
+        match character {
+            '/' | '\\' | ':'| '*'| '?'| '"' |'<'| '>' | '|' => ' ',
+            _ => character.to_lowercase().next().expect(&format!("no lowercase for char {}", character))
+        });
+
+        if title == "1-1-Introduction" {
+            println!("breed: {}", self.icon_name().unwrap())
+        }
+
         let breed = match self.icon_name() {
             Some("fold") => Some(IlNodeType::Folder {
                 store_files: false,
