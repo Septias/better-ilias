@@ -19,6 +19,6 @@ jobs:
     - name: Build
       run: |
         cd Backend
-        cargo build --verbose
+        cargo +nightly build --verbose
     - name: Run tests
       run: cargo test --verbose
