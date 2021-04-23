@@ -48,9 +48,9 @@ pub enum IlNodeType {
         version: u16,
         local: bool,
     },
+    Video,
     Exercise,
     Group,
-    Streams,
 }
 
 
@@ -291,6 +291,8 @@ impl<'a> HypNode<'a> {
                 path,
                 version: self.version().unwrap_or(0) as u16,
             }),
+            Some("xvid") => Some(IlNodeType::Video),
+            Some("exc") => Some(IlNodeType::Exercise),
             _ => None,
         };
         Some(IlNode {
