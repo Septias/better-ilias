@@ -268,6 +268,7 @@ impl<'a> HypNode<'a> {
             '/' | '\\' | ':'| '*'| '?'| '"' |'<'| '>' | '|' => ' ',
             _ => character.to_lowercase().next().expect(&format!("no lowercase for char {}", character))
         });
+        path.push(std::iter::once(start).chain(rest).collect::<String>());
 
         if title == "1-1-Introduction" {
             println!("breed: {}", self.icon_name().unwrap())
