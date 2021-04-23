@@ -270,10 +270,6 @@ impl<'a> HypNode<'a> {
         });
         path.push(std::iter::once(start).chain(rest).collect::<String>());
 
-        if title == "1-1-Introduction" {
-            println!("breed: {}", self.icon_name().unwrap())
-        }
-
         let breed = match self.icon_name() {
             Some("fold") => Some(IlNodeType::Folder {
                 store_files: false,

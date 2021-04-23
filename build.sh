@@ -1,16 +1,19 @@
-#!/bin/bash
+
 cd Backend
 cargo build --release
 echo "built backend"
 
 cd ../Frontend
-npm build
+npm run build
 echo "built frontend"
 
 cd ../
 
-folder=build_$(date +%s)
-mkdir builds/$folder
+folder=builds/build_$(date +%s)
+mkdir $folder
 
-cp -r Frontend/dist builds/$folder
-cp Backend/Rocket.toml Backend/target/release/better_ilias.exe builds/$folder
+cp -r Frontend/dist $folder
+cp Backend/Rocket.toml Backend/target/release/better_ilias.exe $folder
+
+#just for me
+cp -r $folder/* /d/dev/Installations/BetterIlias
