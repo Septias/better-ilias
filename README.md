@@ -12,7 +12,7 @@ A tool for better interaction with the managment-website from Albert-Ludwigs-Uni
 
 # Installation
 If you don't want to build manually use this
-* Windows: [build_1618847470.zip](https://github.com/Septias/BetterIlias/files/6351216/build_1618847470.zip)
+* Windows: [build_1619173743.zip](https://github.com/Septias/BetterIlias/files/6364627/build_1619173743.zip)
 
 otherwise:
 
