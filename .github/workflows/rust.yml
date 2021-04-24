@@ -1,4 +1,4 @@
-name: Rust
+name: Rust + Vue
 
 on:
   push:
@@ -10,10 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  build-backend:
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install latest nightly
@@ -22,11 +20,32 @@ jobs:
         toolchain: nightly
         override: true
         components: rustfmt, clippy
+
     - name: Build
+      working-directory: "Backend"
       run: |
-        cd Backend
         cargo +nightly build --verbose
+
     - name: Run tests
+      working-directory: "Backend"
       run: | 
-        cd Backend
         cargo test --verbose
+
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Compile Frontend
+      working-directory: "Frontend"
+      run: |
+        npm install
+        npm run build
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: |
+          Backend/target/release/better_ilias.exe
+
