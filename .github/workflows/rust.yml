@@ -21,16 +21,6 @@ jobs:
         override: true
         components: rustfmt, clippy
 
-    - name: Build
-      working-directory: "Backend"
-      run: |
-        cargo +nightly build --verbose
-
-    - name: Run tests
-      working-directory: "Backend"
-      run: | 
-        cargo test --verbose
-
     - uses: actions/setup-node@v2
       with:
         node-version: '14'
@@ -47,5 +37,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: |
-          Backend/target/release/better_ilias.exe
+          Frontend/dist
 
