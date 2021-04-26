@@ -1,6 +1,6 @@
 
 cd Backend
-cargo build --release
+cargo +nightly build --release
 echo "built backend"
 
 cd ../Frontend
@@ -10,7 +10,7 @@ echo "built frontend"
 cd ../
 
 folder=builds/build_$(date +%s)
-mkdir $folder
+mkdir -p $folder
 
 cp -r Frontend/dist $folder
 cp Backend/Rocket.toml Backend/target/release/better_ilias.exe $folder
