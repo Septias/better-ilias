@@ -1,4 +1,4 @@
-
+set -e
 cd Backend
 cargo +nightly build --release
 echo "built backend"
