@@ -1,5 +1,4 @@
 <template>
-  aa
   <div
     class="fixed h-full w-full flex justify-center items-center top-0 bg-main bg-opacity-50"
     @click="disable_login"
