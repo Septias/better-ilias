@@ -30,7 +30,7 @@ pub struct IlNode {
     pub title: String,
     pub breed: IlNodeType,
     pub parent: u16,
-    visible: bool,
+    pub visible: bool,
     pub children: Option<Vec<Arc<Mutex<IlNode>>>>,
 }
 
@@ -53,7 +53,6 @@ pub enum IlNodeType {
     Group,
 }
 
-
 impl IlNodeType {
     pub fn get_path(&mut self) -> Option<&mut PathBuf> {
         if let Self::File { path, .. } = self {
@@ -62,7 +61,7 @@ impl IlNodeType {
             None
         }
     }
-    pub fn is_file(&self) -> bool {
+    pub fn _is_file(&self) -> bool {
         matches!(self, IlNodeType::File { .. })
     }
     pub fn get_local(&mut self) -> Option<&mut bool> {
@@ -72,7 +71,6 @@ impl IlNodeType {
             None
         }
     }
-
 }
 
 lazy_static! {
@@ -151,9 +149,7 @@ impl IliasTree {
                 sender,
             })
         } else {
-            Ok(IliasTree::new(
-                &ILIAS_ROOT,
-            ))
+            Ok(IliasTree::new(&ILIAS_ROOT))
         }
     }
 
@@ -225,7 +221,7 @@ impl<'a> HypNode<'a> {
         let img = self.element.select(&IMAGE).last()?;
         let img_src = img.value().attr("src")?;
 
-        let start_index: usize = img_src.find("icon_")? + 5; 
+        let start_index: usize = img_src.find("icon_")? + 5;
         let end_index = start_index + img_src[start_index..].find(".svg")?;
         Some(&img_src[start_index..end_index])
     }
@@ -260,13 +256,15 @@ impl<'a> HypNode<'a> {
     }
     pub fn into_node(self, mut path: PathBuf) -> Option<IlNode> {
         let title = self.title()?;
-        
+
         let mut chars = title.chars();
         let start = chars.next().unwrap();
-        let rest = chars.map( |character|
-        match character {
-            '/' | '\\' | ':'| '*'| '?'| '"' |'<'| '>' | '|' => ' ',
-            _ => character.to_lowercase().next().expect(&format!("no lowercase for char {}", character))
+        let rest = chars.map(|character| match character {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => ' ',
+            _ => character
+                .to_lowercase()
+                .next()
+                .expect(&format!("no lowercase for char {}", character)),
         });
         path.push(std::iter::once(start).chain(rest).collect::<String>());
 
@@ -343,17 +341,21 @@ pub fn update_ilias_tree(
                                             };
                                         }
                                         Some(node)
-                                    } else if let Some(mut node) = hypnode.into_node(path.clone()) {
+                                    } else if let Some(node) = hypnode.into_node(path.clone()) {
                                         // second check is also done when downloading
                                         #[cfg(not(debug_assertions))]
-                                        return Some(if node.breed.is_file() && *node.breed.get_local().unwrap() == true {
-                                            let node = Arc::new(Mutex::new(node));
-                                            file_channel.send(node.clone()).unwrap();
-                                            node
-                                        } else {
-                                            Arc::new(Mutex::new(node))
-                                        });
-                                        
+                                        return Some(
+                                            if node.breed.is_file()
+                                                && *node.breed.get_local().unwrap() == true
+                                            {
+                                                let node = Arc::new(Mutex::new(node));
+                                                file_channel.send(node.clone()).unwrap();
+                                                node
+                                            } else {
+                                                Arc::new(Mutex::new(node))
+                                            },
+                                        );
+
                                         #[cfg(debug_assertions)]
                                         Some(Arc::new(Mutex::new(node)))
                                     } else {
@@ -364,12 +366,20 @@ pub fn update_ilias_tree(
                                 .collect();
 
                             for child in &new_children {
-                                if let IlNodeType::Folder { .. } = child.lock().unwrap().breed {
-                                    handles.push(update_ilias_tree(
-                                        client.clone(),
-                                        child.clone(),
-                                        file_channel.clone(),
-                                    ));
+                                match child.lock().unwrap().breed.clone() {
+                                    IlNodeType::Folder { .. } => {
+                                        handles.push(update_ilias_tree(
+                                            client.clone(),
+                                            child.clone(),
+                                            file_channel.clone(),
+                                        ));
+                                    }
+                                    IlNodeType::DirectLink => {
+                                        let child_clone = child.clone();
+                                        let client_clone = client.clone();
+                                        tokio::spawn(async move {client_clone.flatten_link(&child_clone).await.unwrap();});
+                                    }
+                                    _ => {}
                                 }
                             }
 

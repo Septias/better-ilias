@@ -10,7 +10,7 @@
     <template #body>
       <a
         v-if="!edit_visibility"
-        :href="'https://ilias.uni-freiburg.de/' + node.uri"
+        :href="node.uri"
         >{{ node.title }}</a
       >
       <template v-else>{{ node.title }}</template>

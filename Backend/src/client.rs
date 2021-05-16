@@ -208,7 +208,7 @@ impl IliasClient {
 
         if path.extension().unwrap() == "mp4" {
             *file_node.lock().unwrap().breed.get_local().unwrap() = false;
-        } 
+        }
 
         if *file_node.lock().unwrap().breed.get_local().unwrap() {
             create_dir_all(path.parent().unwrap())
@@ -222,5 +222,87 @@ impl IliasClient {
         }
 
         Ok(())
+    }
+
+    /// Takes a ilias-link (which is a redirect) and replaces it with the correct location
+    pub async fn flatten_link(&self, node: &Arc<Mutex<IlNode>>) -> Result<(), ClientError> {
+        let client = ClientBuilder::new()
+            .cookie_store(true)
+            .http1_title_case_headers()
+            .redirect(Policy::none())
+            .build()?;
+
+        // request to get context and auth-url
+        let uri = node.lock().unwrap().uri.clone();
+
+        let token = {
+            self
+                .token
+                .read()
+                .unwrap()
+                .clone()
+                .ok_or(ClientError::NoToken)?
+        };
+        let resp = client
+            .get("https://ilias.uni-freiburg.de/".to_string() + &uri)
+            .header(
+                "cookie",
+                "PHPSESSID=".to_owned()
+                    + &token
+            )
+            .send()
+            .await?;
+
+        let link_location = resp
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+        node.lock().unwrap().uri = link_location;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::convert::TryInto;
+
+    use itertools::Itertools;
+    use tokio::fs::read_to_string;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn flatten_link() {
+        // this test is very specific to my setup/ilias-account so it will prob not work on yours or fail entirely after some time
+        let node = Arc::new(Mutex::new(IlNode {
+            id: 1,
+            uri: "ilias.php?baseClass=ilLinkResourceHandlerGUI&ref_id=2070649&cmd=calldirectlink"
+                .to_string(),
+            title: "Ge".to_string(),
+            breed: crate::tree::IlNodeType::DirectLink,
+            parent: 12,
+            visible: true,
+            children: None,
+        }));
+
+        let client = IliasClient::new();
+        if let Ok(raw_credentials) = read_to_string("credentials.txt").await {
+            let credentials: [String; 2] = raw_credentials
+                .split('\n')
+                .map(|c| c.trim().to_owned())
+                .collect_vec()
+                .try_into()
+                .unwrap();
+
+            client.acquire_token(&credentials).await.unwrap();
+            client.flatten_link(&node).await.unwrap();
+            assert_eq!(
+                &node.lock().unwrap().uri,
+                &"https://uni-freiburg.zoom.us/j/62786894654"
+            );
+        }
     }
 }
