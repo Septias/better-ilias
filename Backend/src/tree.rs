@@ -61,7 +61,7 @@ impl IlNodeType {
             None
         }
     }
-    pub fn _is_file(&self) -> bool {
+    pub fn is_file(&self) -> bool {
         matches!(self, IlNodeType::File { .. })
     }
     pub fn get_local(&mut self) -> Option<&mut bool> {
@@ -341,7 +341,7 @@ pub fn update_ilias_tree(
                                             };
                                         }
                                         Some(node)
-                                    } else if let Some(node) = hypnode.into_node(path.clone()) {
+                                    } else if let Some(mut node) = hypnode.into_node(path.clone()) {
                                         // second check is also done when downloading
                                         #[cfg(not(debug_assertions))]
                                         return Some(
