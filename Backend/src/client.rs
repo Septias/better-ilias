@@ -235,22 +235,21 @@ impl IliasClient {
         // request to get context and auth-url
         let uri = node.lock().unwrap().uri.clone();
 
-        let token = {
-            self
-                .token
-                .read()
-                .unwrap()
-                .clone()
-                .ok_or(ClientError::NoToken)?
-        };
-        let resp = client
+        
+        let preflight_req = client
             .get("https://ilias.uni-freiburg.de/".to_string() + &uri)
             .header(
                 "cookie",
                 "PHPSESSID=".to_owned()
-                    + &token
-            )
-            .send()
+                    + self
+                    .token
+                    .read()
+                    .unwrap()
+                    .as_ref()
+                    .ok_or(ClientError::NoToken)?
+            );
+
+        let resp = preflight_req.send()
             .await?;
 
         let link_location = resp
