@@ -10,19 +10,19 @@
     "vue": "^3.0.11"
   },
   "devDependencies": {
-    "@tailwindcss/postcss7-compat": "^2.1.0",
-    "@vitejs/plugin-vue": "^1.2.1",
+    "@iconify/json": "^1.1.343",
+    "@tailwindcss/postcss7-compat": "^2.1.2",
+    "@vitejs/plugin-vue": "^1.2.2",
     "@vue/compiler-sfc": "^3.0.11",
     "@vuedx/typecheck": "^0.4.2-insiders-1610448877.0",
     "@vuedx/typescript-plugin-vue": "^0.4.1",
     "autoprefixer": "^9.8.6",
     "postcss": "^7.0.35",
-    "sass": "^1.32.8",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.1.0",
+    "sass": "^1.32.13",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.1.2",
     "typescript": "^4.2.4",
-    "vite": "^2.1.5",
+    "vite": "^2.3.2",
     "vite-plugin-components": "^0.6.14",
-    "vite-plugin-icons": "^0.2.4",
-    "@iconify/json": "^1.1.328"
+    "vite-plugin-icons": "^0.2.4"
   }
 }
