@@ -76,7 +76,7 @@ export default defineComponent({
 
     const folders = computed(() => root_node.value.children.filter((node) => node.breed.hasOwnProperty('Folder')));
     
-    update();
+    //update();
 
     return {
       root_node,
