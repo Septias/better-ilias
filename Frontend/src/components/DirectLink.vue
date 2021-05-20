@@ -11,6 +11,7 @@
       <a
         v-if="!edit_visibility"
         :href="node.uri"
+        target="_blank"
         >{{ node.title }}</a
       >
       <template v-else>{{ node.title }}</template>
