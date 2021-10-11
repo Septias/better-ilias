@@ -6,13 +6,11 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use rocket::{
     fairing::AdHoc,
-    response::{status::Created, Debug, NamedFile},
+    response::{status::Created, Debug},
     Build, Rocket, State,
+    serde::{json::{json, Json, Value}}
 };
-use rocket_contrib::{
-    json::{json, Json, JsonValue},
-    serve::StaticFiles,
-};
+use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::{env::Args, path::PathBuf};
@@ -83,7 +81,7 @@ async fn create_note(db: NotesDB, note: Json<Note>) -> Result<Created<Json<Note>
     let note_value = note.clone();
     db.run(move |conn| {
         diesel::insert_into(notes::table)
-            .values(&note_value)
+            .values(&*note_value)
             .execute(conn)
     })
     .await?;
@@ -105,13 +103,13 @@ async fn update_note(db: NotesDB, note: Json<Note>) -> Result<&'static str> {
 }
 
 #[get("/node")]
-pub fn get_node(node: State<Arc<IliasTree>>) -> Json<IlNode> {
+pub fn get_node(node: &State<Arc<IliasTree>>) -> Json<IlNode> {
     let node = node.get_root_node().unwrap().lock().unwrap();
     Json(node.clone())
 }
 
 #[get("/update")]
-pub async fn update(node: State<'_, Arc<IliasTree>>) -> JsonValue {
+pub async fn update(node: &State<Arc<IliasTree>>) -> Value {
     if let Err(err) = node.update_ilias().await {
         match err {
             ClientError::NoToken => return json!({"status": "set_token"}),
@@ -121,11 +119,6 @@ pub async fn update(node: State<'_, Arc<IliasTree>>) -> JsonValue {
     node.save().await;
     let node = node.get_root_node().unwrap().lock().unwrap();
     json!({"status": "ok", "node": &*node})
-}
-
-#[get("/")]
-pub async fn index() -> std::result::Result<NamedFile, std::io::Error> {
-    NamedFile::open(FRONTEND_BASE_PATH.join("dist/index.html")).await
 }
 
 #[derive(Deserialize)]
@@ -139,10 +132,6 @@ pub fn open_file(file: Json<File>) -> std::result::Result<(), std::io::Error> {
     Ok(())
 }
 
-#[get("/favicon.ico")]
-pub async fn favicon() -> Result<NamedFile, std::io::Error> {
-    NamedFile::open(FRONTEND_BASE_PATH.join("dist/favicon-32x32.png")).await
-}
 
 #[derive(Deserialize)]
 pub struct Credentials {
@@ -154,8 +143,8 @@ pub struct Credentials {
 #[post("/credentials", data = "<credentials>")]
 pub async fn set_credentials(
     credentials: Json<Credentials>,
-    node: State<'_, Arc<IliasTree>>,
-) -> JsonValue {
+    node: &State<Arc<IliasTree>>,
+) -> Value {
     let creds = [
         credentials.username.to_owned(),
         credentials.password.to_owned(),
@@ -199,7 +188,6 @@ pub fn stage() -> AdHoc {
             .attach(NotesDB::fairing())
             .attach(AdHoc::on_ignite("Diesel Migrations", run_migrations))
             //.attach(AdHoc::on_ignite("Diesel Migrations", run_migrations))
-            .mount("/", routes![index])
             .mount(
                 "/api",
                 routes![
@@ -208,14 +196,9 @@ pub fn stage() -> AdHoc {
                     open_file,
                     update,
                     set_credentials,
-                    favicon,
                     create_note,
                     update_note
                 ],
-            )
-            .mount(
-                "/assets/",
-                StaticFiles::from(FRONTEND_BASE_PATH.join("dist/assets")),
             )
     })
 }

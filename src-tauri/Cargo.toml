@@ -1,9 +1,22 @@
 [package]
-authors = ["Septias <39526136+Septias@users.noreply.github.com>"]
-build = "build.rs"
+name = "app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+default-run = "app"
 edition = "2018"
-name = "better_ilias"
-version = "1.0.0"
+build = "src/build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.0.0-beta.4" }
+
+[features]
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]
 
 [package.metadata.winres]
 FileDescription = "A program to navigate Ilias and sync files to the local filesystem"
@@ -12,6 +25,9 @@ FileDescription = "A program to navigate Ilias and sync files to the local files
 winres = "0.1"
 
 [dependencies]
+serde_json = "1.0"
+tauri = { version = "1.0.0-beta.8", features = ["api-all"] }
+
 dotenv = "0.15.0"
 futures = "0.3.13"
 itertools = "*"
@@ -19,7 +35,7 @@ lazy_static = "1.4.0"
 open = "1.6.0"
 ron = "0.6.4"
 
-libsqlite3-sys = {version = "*", features = ["bundled"]}
+libsqlite3-sys = {version = "*", features = ["bundled"] }
 
 env_logger = "0.8.3"
 log = "0.4.14"
@@ -37,7 +53,7 @@ features = ["client", "http1"]
 version = "0.14.4"
 
 [dependencies.serde]
-features = ["rc"]
+features = ["rc", "derive"]
 version = "1.0.125"
 
 [dependencies.tokio]
@@ -48,14 +64,14 @@ version = "1.4.0"
 features = ["cookies", "blocking"]
 version = "0.11.2"
 
-[dependencies.rocket_contrib]
-default-features = false
-features = ["diesel_sqlite_pool", "json", "serve"]
-git = "https://github.com/SergioBenitez/Rocket"
-
 [dependencies.rocket]
 git = "https://github.com/SergioBenitez/Rocket"
+features = ["json"]
 
 [dependencies.diesel]
 features = ["sqlite"]
 version = "1.4.6"
+
+[dependencies.rocket_sync_db_pools]
+git = "https://github.com/SergioBenitez/Rocket"
+features = ["diesel_sqlite_pool"]
