@@ -1,3 +1,6 @@
+# ! Broken
+Better ilias is not working atm because it changed it's login-form. I need to redo the login-flow before updates from Ilias can be loaded
+
 # BetterIlias
 A tool for better interaction with the managment-website from Albert-Ludwigs-Universität Freiburg.
 
