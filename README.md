@@ -1,8 +1,5 @@
 # ! Broken
-Better ilias is not working atm because it changed it's login-form. I need to redo the login-flow before updates from Ilias can be loaded
-
-#### 01.11.2021
-There is a meeting planned with the ILIAS-staff for 28.11.2021 to maybe find a solution on why the login-flow is not working anylonger and how to fix it.
+Better ilias is not working. They dynamicly add the course-content now, which does not work well with my crawler.
 
 # BetterIlias
 A tool for better interaction with the managment-website from Albert-Ludwigs-Universität Freiburg.
