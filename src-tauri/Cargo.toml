@@ -58,7 +58,7 @@ version = "1.0.125"
 
 [dependencies.tokio]
 features = ["full"]
-version = "1.4.0"
+version = "1.13.1"
 
 [dependencies.reqwest]
 features = ["cookies", "blocking"]
