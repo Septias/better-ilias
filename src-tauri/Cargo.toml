@@ -12,7 +12,7 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-beta.4" }
+tauri-build = { version = "1.0.4" }
 
 [features]
 default = [ "custom-protocol" ]
@@ -26,7 +26,7 @@ winres = "0.1"
 
 [dependencies]
 serde_json = "1.0"
-tauri = { version = "1.0.0-beta.8", features = ["api-all"] }
+tauri = { version = "1.0.5", features = ["api-all"] }
 
 dotenv = "0.15.0"
 futures = "0.3.13"

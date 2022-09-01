@@ -13,7 +13,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "github.septias",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -24,19 +24,18 @@
       "resources": [],
       "externalBin": [],
       "copyright": "",
-      "category": "DeveloperTool",
+      "category": "Utility",
       "shortDescription": "",
       "longDescription": "",
       "deb": {
-        "depends": [],
-        "useBootstrapper": false
+        "depends": []
       },
       "macOS": {
         "frameworks": [],
         "minimumSystemVersion": "",
-        "useBootstrapper": false,
         "exceptionDomain": "",
         "signingIdentity": null,
+        "providerShortName": null,
         "entitlements": null
       },
       "windows": {
@@ -49,11 +48,18 @@
       "active": false
     },
     "allowlist": {
-      "all": true
+      "all": true,
+      "protocol": {
+        "assetScope": [
+          "$HOME/**"
+        ],
+        "all": true,
+        "asset": true
+      }
     },
     "windows": [
       {
-        "title": "BetterIlias",
+        "title": "Manage Wallpapers",
         "width": 800,
         "height": 600,
         "resizable": true,
@@ -61,7 +67,7 @@
       }
     ],
     "security": {
-      "csp": "default-src blob: data: filesystem: ws: wss: http: https: tauri: 'unsafe-eval' 'unsafe-inline' 'self' img-src: 'self'"
+      "csp": "default-src 'self'; img-src * asset: https://asset.localhost; font-src *"
     }
   }
 }
