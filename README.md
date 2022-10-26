@@ -1,5 +1,5 @@
 # ! Broken
-Better ilias is not working. They dynamicly add the course-content now, which does not work well with my crawler.
+Better ilias is not working. Will fix this until 30.Nov
 
 # BetterIlias
 A tool for better interaction with the managment-website from Albert-Ludwigs-Universität Freiburg.
