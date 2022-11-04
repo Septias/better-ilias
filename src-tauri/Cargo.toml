@@ -12,7 +12,7 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.0.4" }
+tauri-build = { version = "1.1.1" }
 
 [features]
 default = [ "custom-protocol" ]
@@ -26,52 +26,36 @@ winres = "0.1"
 
 [dependencies]
 serde_json = "1.0"
-tauri = { version = "1.0.5", features = ["api-all"] }
-
-dotenv = "0.15.0"
-futures = "0.3.13"
+tauri = { version = "1.1.1", features = ["api-all"] }
 itertools = "*"
 lazy_static = "1.4.0"
-open = "1.6.0"
-ron = "0.6.4"
-
-libsqlite3-sys = {version = "*", features = ["bundled"] }
-
-env_logger = "0.8.3"
-log = "0.4.14"
-
+open = "3.0.3"
+ron = "0.8.0"
+env_logger = "0.9.1"
+log = "0.4.17"
 hyper-tls = "0.5.0"
-scraper = "0.12.0"
-urlencoding = "1.1.1"
-
-anyhow = "1.0.40"
-diesel_migrations = "1.3"
+scraper = "0.13.0"
+urlencoding = "2.1.2"
+anyhow = "1.0.66"
 thiserror = "1.0.24"
+futures = "0.3.25"
 
 [dependencies.hyper]
 features = ["client", "http1"]
-version = "0.14.4"
+version = "0.14.22"
 
 [dependencies.serde]
 features = ["rc", "derive"]
-version = "1.0.125"
+version = "1.0.147"
 
 [dependencies.tokio]
 features = ["full"]
-version = "1.4.0"
+version = "1.21.2"
 
 [dependencies.reqwest]
 features = ["cookies", "blocking"]
-version = "0.11.2"
+version = "0.11.12"
 
 [dependencies.rocket]
 git = "https://github.com/SergioBenitez/Rocket"
 features = ["json"]
-
-[dependencies.diesel]
-features = ["sqlite"]
-version = "1.4.6"
-
-[dependencies.rocket_sync_db_pools]
-git = "https://github.com/SergioBenitez/Rocket"
-features = ["diesel_sqlite_pool"]

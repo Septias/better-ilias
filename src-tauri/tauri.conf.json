@@ -1,10 +1,10 @@
 {
   "package": {
-    "productName": "BetterIlias",
+    "productName": "better-ilias",
     "version": "0.1.0"
   },
   "build": {
-    "distDir": "/home/septias/coding/BetterIlias/Frontend/dist",
+    "distDir": "/home/septias/coding/BetterIlias/frontend/dist",
     "devPath": "http://localhost:3000/",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
