@@ -1,6 +1,7 @@
 use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
-use log::info;
+use log::{info, warn};
+use serde::{Deserialize, Serialize};
 use tokio::{
     fs::{create_dir_all, File},
     io::AsyncWriteExt,
@@ -11,6 +12,7 @@ use lazy_static::lazy_static;
 use reqwest::{header::CONTENT_TYPE, redirect::Policy, ClientBuilder};
 use scraper::{Html, Selector};
 use std::{
+    fs::{self, read_to_string},
     str::Utf8Error,
     sync::{Arc, Mutex},
 };
@@ -44,6 +46,23 @@ lazy_static! {
     pub static ref INPUTS: Selector = Selector::parse("input").unwrap();
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Credentials {
+    name: String,
+    pw: String,
+}
+
+fn load_creds() -> anyhow::Result<Credentials> {
+    Ok(serde_json::from_str::<Credentials>(&read_to_string(
+        "credentials.json",
+    )?)?)
+}
+
+fn save_creds(creds: &Credentials) -> anyhow::Result<()> {
+    fs::write("credentials.json", serde_json::to_string(creds)?)?;
+    Ok(())
+}
+
 impl IliasClient {
     pub async fn get_page(&self, uri: &str) -> anyhow::Result<Html, ClientError> {
         let req = Request::builder()
@@ -65,14 +84,20 @@ impl IliasClient {
         Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
     }
 
-    pub async fn new<'a>(credentials: [String; 2]) -> anyhow::Result<Self> {
-        let https = HttpsConnector::new();
-        let client = Arc::new(Client::builder().build::<_, hyper::Body>(https));
-        let token = Self::acquire_token(credentials).await?;
+    pub async fn with_creds(creds: Credentials) -> anyhow::Result<Self> {
+        let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
+        let token = Self::acquire_token(&creds).await?;
         Ok(IliasClient { client, token })
     }
 
-    pub fn new_with_token<'a>(token: String) -> Self {
+    pub async fn new() -> anyhow::Result<Self> {
+        let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
+        let creds = load_creds()?;
+        let token = Self::acquire_token(&creds).await?;
+        Ok(IliasClient { client, token })
+    }
+
+    pub fn _new_with_token<'a>(token: String) -> Self {
         let https = HttpsConnector::new();
         IliasClient {
             client: Arc::new(Client::builder().build::<_, hyper::Body>(https)),
@@ -80,7 +105,7 @@ impl IliasClient {
         }
     }
 
-    pub async fn acquire_token<'a>(credentials: [String; 2]) -> Result<String, ClientError> {
+    pub async fn acquire_token(creds: &Credentials) -> Result<String, ClientError> {
         let client = ClientBuilder::new()
             .cookie_store(true)
             .http1_title_case_headers()
@@ -113,8 +138,8 @@ impl IliasClient {
             .body(format!(
         "LoginForm%5Bcontext%5D={}&LoginForm%5Busername%5D={}&LoginForm%5Bpassword%5D={}&yt0=Login",
         encode(&context),
-        credentials[0],
-        credentials[1]
+        creds.name,
+        creds.name
       ))
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .send()
@@ -160,6 +185,9 @@ impl IliasClient {
             .ok_or(ClientError::BadCredentials)?;
 
         let token = sess_id.value().to_string();
+        if !save_creds(creds).is_ok() {
+            warn!("couldn't save credenetials")
+        }
         Ok(token)
     }
 
@@ -191,10 +219,7 @@ impl IliasClient {
         Ok(())
     }
 
-    pub async fn download_file(
-        &self,
-        file_node: Arc<Mutex<IlNode>>,
-    ) -> anyhow::Result<()> {
+    pub async fn download_file(&self, file_node: Arc<Mutex<IlNode>>) -> anyhow::Result<()> {
         let req = {
             let node = file_node.lock().unwrap();
             info!("Downloading file {}", node.title);

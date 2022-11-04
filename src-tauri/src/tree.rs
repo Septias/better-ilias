@@ -159,7 +159,7 @@ pub fn update_node(
                             let node = node.clone();
                             let client = client.clone();
                             download_handles.push(tokio::spawn(async move {
-                                client.download_file(node).await;
+                                client.download_file(node).await
                             }));
                         }
                         Some(node)

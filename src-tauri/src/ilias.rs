@@ -1,18 +1,29 @@
-use crate::{client::IliasClient, tree::update_node};
+use crate::{
+    client::{Credentials, IliasClient},
+    tree::update_node,
+};
+use futures::{SinkExt, StreamExt};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, read_to_string},
+    net::SocketAddr,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::{
+    net::{TcpListener, TcpStream},
+    signal,
+};
+use tokio_tungstenite::{
+    accept_async,
+    tungstenite::{Error, Message, Result},
+};
 
 const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
 
 type WrappedNode = Arc<Mutex<IlNode>>;
-pub type Somewhat = String;
-type Credentials = [String; 2];
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IlNode {
     pub uri: String,
@@ -61,9 +72,6 @@ impl IlNodeType {
             None
         }
     }
-    pub fn is_file(&self) -> bool {
-        matches!(self, IlNodeType::File { .. })
-    }
     pub fn get_local(&mut self) -> Option<&mut bool> {
         if let Self::File { local, .. } = self {
             Some(local)
@@ -81,12 +89,9 @@ impl IlNodeType {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct IliasTree {
-    #[serde(skip)]
-    client: Option<Arc<IliasClient>>,
-    tree: Mutex<Option<IlNode>>,
-    credentials: Option<Credentials>,
+    tree: Option<IlNode>,
 }
 
 impl IliasTree {
@@ -95,33 +100,89 @@ impl IliasTree {
             serde_json::from_str(&save_data).unwrap()
         } else {
             IliasTree {
-                client: None,
-                tree: Mutex::new(Some(IlNode::default())),
-                credentials: None,
+                tree: Some(IlNode::default()),
             }
         }
     }
 
-    pub async fn run(self) {
-        // let (sender, receiver) = mpsc::unbounded_channel();
+    pub async fn run(self) -> anyhow::Result<()> {
+        let addr = "localhost:2654";
+        let tcp_listener = TcpListener::bind(addr).await.unwrap();
+        info!("listening on {addr}");
 
-        /* while let Some(res) = receiver.recv().await {
-            let client_clone = client.clone();
+        let Self { mut tree } = self;
+        let root_node = Arc::new(Mutex::new(tree.take().unwrap().clone()));
+        {
+            let root_node = root_node.clone();
             tokio::spawn(async move {
-                client_clone.download_file(res).await.unwrap();
+                while let Ok((stream, _)) = tcp_listener.accept().await {
+                    let peer = stream
+                        .peer_addr()
+                        .expect("connected streams should have a peer address");
+                    {
+                        info!("New connection: {}", peer);
+                        let root_node = root_node.clone();
+                        tokio::spawn(async move { new_client(stream, root_node).await.unwrap() });
+                    }
+                }
             });
-        } */
-    }
-
-    pub async fn update_root(&self) -> anyhow::Result<()> {
-        if let Some(client) = &self.client {
-            let node = Arc::new(Mutex::new(self.tree.lock().unwrap().take().unwrap()));
-            update_node(client.clone(), node).await?;
         }
+        signal::ctrl_c().await.unwrap();
+        Self::save(&root_node).await;
         Ok(())
     }
 
-    pub async fn save(&self) {
-        fs::write("save.json", serde_json::to_string(&self).unwrap()).unwrap()
+    pub async fn save(data: &WrappedNode) {
+        fs::write("save.json", serde_json::to_string(&data).unwrap()).unwrap()
     }
+}
+
+#[derive(Serialize, Deserialize)]
+enum Request {
+    Update,
+    Login(Credentials),
+}
+
+#[derive(Serialize, Deserialize)]
+enum Response {
+    Updated,
+    Success,
+    NotAuthenticated,
+}
+
+impl Response {
+    fn into_resp(&self) -> Message {
+        serde_json::to_string(&self).unwrap().into()
+    }
+}
+
+async fn new_client(stream: TcpStream, root_node: WrappedNode) -> anyhow::Result<()> {
+    let mut stream = accept_async(stream).await.expect("Failed to accept");
+    let mut client = IliasClient::new().await.ok().map(Arc::new);
+
+    while let Some(msg) = stream.next().await {
+        if let Ok(Message::Text(text)) = msg {
+            let rq: Request = serde_json::from_str(&text)?;
+            let resp = match rq {
+                Request::Update => {
+                    if let Some(client) = &client {
+                        update_node(client.clone(), root_node.clone()).await??;
+                        Response::Updated.into_resp()
+                    } else {
+                        Response::NotAuthenticated.into_resp()
+                    }
+                }
+                Request::Login(creds) => {
+                    if let Ok(new_client) = IliasClient::with_creds(creds).await {
+                        client = Some(Arc::new(new_client));
+                        Response::Success.into_resp()
+                    } else {
+                        Response::NotAuthenticated.into_resp()
+                    }
+                }
+            };
+            stream.send(resp).await.unwrap();
+        }
+    }
+    Ok(())
 }
