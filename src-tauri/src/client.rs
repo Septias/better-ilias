@@ -32,9 +32,9 @@ pub enum ClientError {
     #[error("Requested file didn't answer with content-type")]
     NoContentType,
     #[error("Client Error")]
-    ClientError(#[from] hyper::Error),
+    Client(#[from] hyper::Error),
     #[error("Parse Error")]
-    ParesError(#[from] Utf8Error),
+    Parser(#[from] Utf8Error),
     #[error("Reqwest Error")]
     ReqwestError(#[from] reqwest::Error),
     #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
@@ -97,7 +97,7 @@ impl IliasClient {
         Ok(IliasClient { client, token })
     }
 
-    pub fn _new_with_token<'a>(token: String) -> Self {
+    pub fn _new_with_token(token: String) -> Self {
         let https = HttpsConnector::new();
         IliasClient {
             client: Arc::new(Client::builder().build::<_, hyper::Body>(https)),
@@ -185,7 +185,7 @@ impl IliasClient {
             .ok_or(ClientError::BadCredentials)?;
 
         let token = sess_id.value().to_string();
-        if !save_creds(creds).is_ok() {
+        if save_creds(creds).is_err() {
             warn!("couldn't save credenetials")
         }
         Ok(token)

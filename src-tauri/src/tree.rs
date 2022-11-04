@@ -5,17 +5,15 @@ use std::{
 
 use futures::future::join_all;
 use lazy_static::lazy_static;
-use log::info;
+
 use scraper::{ElementRef, Selector};
 use tokio::{
-    join,
-    sync::mpsc::UnboundedSender,
-    task::{self, JoinHandle},
+    task::{JoinHandle},
 };
 
 use crate::{
-    client::{ClientError, IliasClient},
-    ilias::{IlNode, IlNodeType, Somewhat},
+    client::{IliasClient},
+    ilias::{IlNode, IlNodeType},
 };
 
 lazy_static! {
@@ -85,7 +83,7 @@ impl<'a> HypNode<'a> {
             _ => character
                 .to_lowercase()
                 .next()
-                .expect(&format!("no lowercase for char {}", character)),
+                .unwrap_or_else(|| panic!("no lowercase for char {}", character)),
         });
         path.push(std::iter::once(start).chain(rest).collect::<String>());
 
@@ -145,7 +143,7 @@ pub fn update_node(
                 .into_iter()
                 .map(HypNode::new)
                 .filter(|hypnode| hypnode.uri().is_some())
-                .map(|hypnode| {
+                .filter_map(|hypnode| {
                     // try to find child in old children
                     let position = children
                         .iter()
@@ -163,33 +161,12 @@ pub fn update_node(
                             }));
                         }
                         Some(node)
-                    } else if let Some(node) = hypnode.into_node(
+                    } else { hypnode.into_node(
                         path.as_ref()
                             .expect("node with children must have path")
                             .clone(),
-                    ) {
-                        // second check is also done when downloading
-                        #[cfg(not(debug_assertions))]
-                        return Some(
-                            if node.breed.is_file() && *node.breed.get_local().unwrap() == true {
-                                let node = Arc::new(Mutex::new(node));
-                                let node = node.clone();
-                                let client = client.clone();
-                                download_handles
-                                    .push(tokio::spawn(async move { client.download_file(node) }));
-                                node
-                            } else {
-                                Arc::new(Mutex::new(node))
-                            },
-                        );
-
-                        #[cfg(debug_assertions)]
-                        Some(Arc::new(Mutex::new(node)))
-                    } else {
-                        None
-                    }
+                    ).map(|node| Arc::new(Mutex::new(node))) }
                 })
-                .flatten()
                 .collect()
         } else {
             vec![]

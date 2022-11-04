@@ -3,11 +3,10 @@ use crate::{
     tree::update_node,
 };
 use futures::{SinkExt, StreamExt};
-use log::{error, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, read_to_string},
-    net::SocketAddr,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -15,10 +14,7 @@ use tokio::{
     net::{TcpListener, TcpStream},
     signal,
 };
-use tokio_tungstenite::{
-    accept_async,
-    tungstenite::{Error, Message, Result},
-};
+use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
@@ -111,7 +107,7 @@ impl IliasTree {
         info!("listening on {addr}");
 
         let Self { mut tree } = self;
-        let root_node = Arc::new(Mutex::new(tree.take().unwrap().clone()));
+        let root_node = Arc::new(Mutex::new(tree.take().unwrap()));
         {
             let root_node = root_node.clone();
             tokio::spawn(async move {
@@ -151,7 +147,7 @@ enum Response {
 }
 
 impl Response {
-    fn into_resp(&self) -> Message {
+    fn resp(&self) -> Message {
         serde_json::to_string(&self).unwrap().into()
     }
 }
@@ -167,17 +163,17 @@ async fn new_client(stream: TcpStream, root_node: WrappedNode) -> anyhow::Result
                 Request::Update => {
                     if let Some(client) = &client {
                         update_node(client.clone(), root_node.clone()).await??;
-                        Response::Updated.into_resp()
+                        Response::Updated.resp()
                     } else {
-                        Response::NotAuthenticated.into_resp()
+                        Response::NotAuthenticated.resp()
                     }
                 }
                 Request::Login(creds) => {
                     if let Ok(new_client) = IliasClient::with_creds(creds).await {
                         client = Some(Arc::new(new_client));
-                        Response::Success.into_resp()
+                        Response::Success.resp()
                     } else {
-                        Response::NotAuthenticated.into_resp()
+                        Response::NotAuthenticated.resp()
                     }
                 }
             };
