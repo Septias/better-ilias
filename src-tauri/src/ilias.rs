@@ -1,7 +1,8 @@
 use crate::{
     client::{ClientError, Credentials, IliasClient},
-    tree::{update_node, TreeError},
+    tree::{update_root, TreeError},
 };
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, read_to_string},
@@ -9,8 +10,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-const ILIAS_ROOT: &str =
+pub const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
+
+pub const ROOT_PATH: &str = "studium/";
 
 type WrappedNode = Arc<Mutex<IlNode>>;
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -29,7 +32,7 @@ impl Default for IlNode {
             title: "Root".to_string(),
             breed: IlNodeType::Root,
             visible: true,
-            children: None,
+            children: Some(vec![]),
         }
     }
 }
@@ -98,9 +101,12 @@ impl IliasTree {
     pub async fn update_root(&self) -> Result<(), TreeError> {
         let client = self.client.lock().unwrap().take();
         if let Some(client) = client {
-            update_node(client, self.tree.clone()).await.unwrap()?;
+            info!("updating root node");
+            update_root(client, self.tree.clone()).await.unwrap()?;
+            Ok(())
+        } else {
+            Err(TreeError::Client(ClientError::NoToken))
         }
-        Ok(())
     }
 
     pub async fn login(&self, creds: Credentials) -> Result<(), ClientError> {

@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
 import { ref } from 'vue'
-/* import File from './File.vue'
+import File from './File.vue'
 import DirectLink from './DirectLink.vue'
 import Forum from './Forum.vue'
 import Video from './Video.vue'
-import Exercise from './Exercise.vue' */
+import Exercise from './Exercise.vue'
 import type { IlNode } from '~/types'
+import { get_breed } from '~/utils'
 
 const props = defineProps({
   node: {
@@ -40,12 +41,22 @@ function open_folder() {
   // ws open folder
 }
 
-const get_type = function (breed: any) {
-  if (typeof breed == 'object') {
-    return Object.keys(breed)[0]
-  }
-  else {
-    return breed
+function get_component(breed: any) {
+  switch (get_breed(breed)) {
+    case 'File':
+      return File
+    case 'DirectLink':
+      return DirectLink
+    case 'Forum':
+      return Forum
+    case 'Video':
+      return Video
+    case 'Exercise':
+      return Exercise
+    /* case 'Folder':
+      return Folder */
+    default:
+      throw new Error('Unknown breed')
   }
 }
 
@@ -60,6 +71,8 @@ function handle_set_visible(path: Array<Number>) {
 function open_page() {
   window.open(`https://ilias.uni-freiburg.de/${props.node.uri}`)
 }
+
+function activate_note(node: IlNode) {}
 </script>
 
 <template>
@@ -73,7 +86,7 @@ function open_page() {
         class="text-accent hover:text-white fill-current inline"
         @click="expanded = !expanded"
       >
-        <template v-if="node.children.length">
+        <template v-if="node.children && node.children.length">
           <path
             v-if="expanded"
             d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
@@ -106,7 +119,7 @@ function open_page() {
         </span>
       </span>
 
-      <bx-bx-edit
+      <div
         class="plus text-accent"
         @click="
           () => {
@@ -120,16 +133,28 @@ function open_page() {
       <li
         v-for="(child, index) in node.children"
         :key="child.id"
-        class="node_tree_item" :class="[child.breed]"
         :index="index"
+        class="node_tree_item" :class="[child.breed]"
       >
-        <component
-          :is="get_type(child.breed)"
-          :index="index"
-          :node="child"
-          @set_invisible="handle_set_inivisible"
-          @set_visible="handle_set_visible"
-        />
+        <template v-if="get_breed(child.breed) !== 'Folder'">
+          <component
+            :is="get_component(child.breed)"
+            v-if="get_breed(child.breed) !== 'Folder'"
+            :node="child"
+            :index="index"
+            @set_invisible="handle_set_inivisible"
+            @set_visible="handle_set_visible"
+          />
+        </template>
+        <template v-else>
+          <Folder
+            v-if="get_breed(child.breed) === 'Folder'"
+            :node="child"
+            :index="index"
+            @set_invisible="handle_set_inivisible"
+            @set_visible="handle_set_visible"
+          />
+        </template>
       </li>
     </ul>
   </span>

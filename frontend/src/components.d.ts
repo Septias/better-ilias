@@ -9,6 +9,7 @@ declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     DirectLink: typeof import('./components/DirectLink.vue')['default']
     Exercise: typeof import('./components/Exercise.vue')['default']
+    File: typeof import('./components/File.vue')['default']
     Folder: typeof import('./components/Folder.vue')['default']
     Forum: typeof import('./components/Forum.vue')['default']
     Leaf: typeof import('./components/Leaf.vue')['default']

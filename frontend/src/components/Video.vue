@@ -1,24 +1,18 @@
-<script>
-import { useVisibility } from './compositions'
-export default {
-  name: 'Video',
-  props: {
-    node: {
-      type: Object,
-      required: true,
-    },
+<script setup lang="ts">
+import { edit_visibility } from '~/composables/visibility'
+
+defineProps({
+  node: {
+    type: Object,
+    required: true,
   },
-  setup() {
-    const { edit_visibility } = useVisibility()
-    return { edit_visibility }
-  },
-}
+})
 </script>
 
 <template>
   <Leaf color="text-yellow-400" :node="node">
     <template #default>
-      <bx-bx-movie />
+      icon
     </template>
     <template #body>
       <a

@@ -13,16 +13,24 @@ use tokio::task::JoinHandle;
 
 use crate::{
     client::{ClientError, IliasClient},
-    ilias::{IlNode, IlNodeType},
+    ilias::{IlNode, IlNodeType, ILIAS_ROOT, ROOT_PATH},
 };
 
 lazy_static! {
+    // selectors for content of one course
     pub static ref CONTAINERS: Selector = Selector::parse(".ilContainerListItemOuter").unwrap();
     pub static ref LINK: Selector = Selector::parse(".il_ContainerItemTitle > a").unwrap();
     pub static ref PROPERTY: Selector = Selector::parse(".il_ItemProperty").unwrap();
     pub static ref IMAGE: Selector = Selector::parse(".ilListItemIcon").unwrap();
+
+    // selectors for root-node
+    pub static ref ROOT_CONTAINERS: Selector = Selector::parse(".il-item").unwrap();
+    pub static ref ROOT_IMAGE: Selector = Selector::parse(".icon").unwrap();
+    pub static ref ROOT_LINK: Selector = Selector::parse(".il-item-title > a").unwrap();
+
 }
 
+#[derive(Debug)]
 struct HypNode<'a> {
     element: ElementRef<'a>,
 }
@@ -137,7 +145,6 @@ pub fn update_node(
         let new_children: Vec<Arc<Mutex<IlNode>>> = if let Some(mut children) = children {
             let html = client.get_page(&uri).await?;
             let elements = html.select(&CONTAINERS);
-
             // build new children from fresh children list
             elements
                 .into_iter()
@@ -193,8 +200,68 @@ pub fn update_node(
         }
         join_all(child_handles).await;
         join_all(download_handles).await;
+        if new_children.len() > 0 {
+            node.lock().unwrap().children = Some(new_children);
+        } else {
+            node.lock().unwrap().children = None;
+        }
         Ok(node)
     })
+}
+
+pub fn update_root(
+    client: Arc<IliasClient>,
+    root: Arc<Mutex<IlNode>>,
+) -> JoinHandle<Result<(), TreeError>> {
+    tokio::spawn(async move {
+        let children = {
+            let html = client.get_page(ILIAS_ROOT).await?;
+            let elements = html.select(&ROOT_CONTAINERS);
+            elements
+                .filter(is_kurs)
+                .map(|elem| {
+                    let link = elem.select(&ROOT_LINK).next().unwrap();
+                    let uri = link.value().attr("href").unwrap().to_string();
+                    let title = link.inner_html();
+
+                    IlNode {
+                        uri,
+                        title,
+                        breed: IlNodeType::Folder {
+                            store_files: true,
+                            path: ROOT_PATH.into(),
+                        },
+                        visible: true,
+                        children: Some(vec![]),
+                    }
+                })
+                .map(|child| Arc::new(Mutex::new(child)))
+                .collect::<Vec<_>>()
+        };
+
+        let handles = children
+            .iter()
+            .map(|child| update_node(client.clone(), child.clone()));
+        join_all(handles).await;
+
+        if children.len() > 0 {
+            root.lock().unwrap().children = Some(children);
+        } else {
+            root.lock().unwrap().children = None;
+        };
+        Ok(())
+    })
+}
+
+fn is_kurs(element: &ElementRef) -> bool {
+    element
+        .select(&ROOT_IMAGE)
+        .next()
+        .unwrap()
+        .value()
+        .attr("alt")
+        .unwrap()
+        .contains("Kurs")
 }
 
 #[derive(Debug, Error, Serialize)]

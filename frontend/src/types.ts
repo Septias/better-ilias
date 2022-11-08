@@ -3,10 +3,10 @@ import { type ViteSSGContext } from 'vite-ssg'
 export type UserModule = (ctx: ViteSSGContext) => void
 
 export enum IlNodeType {
-  Forum,
-  Folder,
-  DirectLink,
-  File,
+  Forum = 'Forum',
+  Folder = 'Folder',
+  DirectLink = 'DirectLink',
+  File = 'File',
 }
 
 export interface IlNode {

@@ -1,21 +1,51 @@
-<script setup lang="ts">
-import { edit_visibility } from '~/composables/visibility'
-
-defineProps({
+<script setup>
+const props = defineProps({
   node: {
     type: Object,
     required: true,
   },
+  index: {
+    type: Number,
+    required: true,
+  },
+  color: {
+    type: String,
+    required: true,
+  },
 })
 
-function open_file() {}
+const emit = defineEmits(['set_invisible', 'set_visible'])
+function handle_click() {
+  if (edit_visibility.value) {
+    if (props.node.visible) {
+      context.emit('set_invisible', [props.index])
+    }
+    else {
+      context.emit('set_visible', [props.index])
+    }
+  }
+}
 </script>
 
 <template>
-  <Leaf :node="node" color="text-blue-500" @dblclick="open_file">
-    <path
-      d="M14 11a3 3 0 0 1-3-3V4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-8h-4zm-2-3a2 2 0 0 0 2 2h3.586L12 4.414V8zM7 3h5l7 7v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"
-      fill="currentColor"
-    />
-  </Leaf>
+  <span
+    v-if="node.visible || edit_visibility"
+    class="p-1 rounded-sm hover:bg-accent text-white select-none"
+    :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
+    @click="handle_click"
+  >
+    <svg
+      :class="color"
+      class="hover:text-white fill-current inline"
+      focusable="false"
+      width="1em"
+      height="1em"
+      viewBox="0 0 24 24"
+    >
+      <slot name="default" />
+    </svg>
+    <slot name="body">
+      {{ node.title }}
+    </slot>
+  </span>
 </template>
