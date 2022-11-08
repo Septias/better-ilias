@@ -3,11 +3,7 @@ import { create_note, fetch_notes, update_note } from "../api/notes"
 import { IlNode } from "./IlTypes"
 
 
-let edit_visibility = ref(false)
 
-export function useVisibility() {
-  return { edit_visibility }
-}
 
 
 let all_notes = ref([] as Note[])
