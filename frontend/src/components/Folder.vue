@@ -1,4 +1,68 @@
-<template >
+<script lang="ts" setup>
+import type { PropType } from 'vue'
+import { ref } from 'vue'
+/* import File from './File.vue'
+import DirectLink from './DirectLink.vue'
+import Forum from './Forum.vue'
+import Video from './Video.vue'
+import Exercise from './Exercise.vue' */
+import type { IlNode } from '~/types'
+
+const props = defineProps({
+  node: {
+    type: Object as PropType<IlNode>,
+    required: true,
+  },
+  index: {
+    type: Number,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['setVisible', 'setInvisible'])
+const expanded = ref(false)
+
+function handle_click() {
+  if (edit_visibility.value) {
+    if (props.node.visible) {
+      emit('setVisible', [props.index])
+    }
+    else {
+      emit('setInvisible', [props.index])
+    }
+  }
+  else {
+    expanded.value = !expanded.value
+  }
+}
+
+function open_folder() {
+  // ws open folder
+}
+
+const get_type = function (breed: any) {
+  if (typeof breed == 'object') {
+    return Object.keys(breed)[0]
+  }
+  else {
+    return breed
+  }
+}
+
+function handle_set_inivisible(path: Array<Number>) {
+  path.push(props.index)
+  emit('setInvisible', path)
+}
+function handle_set_visible(path: Array<Number>) {
+  path.push(props.index)
+  emit('setVisible', path)
+}
+function open_page() {
+  window.open(`https://ilias.uni-freiburg.de/${props.node.uri}`)
+}
+</script>
+
+<template>
   <span v-if="node.visible || edit_visibility">
     <div class="pluslogic">
       <svg
@@ -14,12 +78,12 @@
             v-if="expanded"
             d="M5.843 9.593L11.5 15.25l5.657-5.657l-.707-.707l-4.95 4.95l-4.95-4.95l-.707.707z"
             fill="currentColor"
-          ></path>
+          />
           <path
             v-else
             d="M8.593 18.157L14.25 12.5L8.593 6.843l-.707.707l4.95 4.95l-4.95 4.95l.707.707z"
             fill="currentColor"
-          ></path>
+          />
         </template>
         <rect
           v-else
@@ -56,16 +120,16 @@
       <li
         v-for="(child, index) in node.children"
         :key="child.id"
-        :class="[child.breed, 'node_tree_item']"
+        class="node_tree_item" :class="[child.breed]"
         :index="index"
       >
         <component
-          :index="index"
           :is="get_type(child.breed)"
+          :index="index"
           :node="child"
           @set_invisible="handle_set_inivisible"
           @set_visible="handle_set_visible"
-        ></component>
+        />
       </li>
     </ul>
   </span>
@@ -79,101 +143,16 @@
 .pluslogic
   > .plus
     display: none
-</style>
 
-<script lang="ts">
-import { ref, defineComponent, PropType } from "vue";
-import File from "./File.vue";
-import DirectLink from "./DirectLink.vue";
-import Forum from "./Forum.vue";
-import { useNotes, useVisibility } from "./compositions";
-import axios from "axios";
-import { IlNode } from "./IlTypes";
-import Video from "./Video.vue";
-import Exercise from "./Exercise.vue";
+.node_tree
+  list-style: none
+  padding-inline-start: 20px
+  max-height: 100%
 
-export default defineComponent({
-  components: { File, DirectLink, Forum, Video, Exercise },
-  name: "Folder",
-  emits: ["set_invisible", "set_visible", "new_note"],
-  props: {
-    node: {
-      type: Object as PropType<IlNode>,
-      required: true,
-    },
-    index: {
-      type: Number,
-      required: true,
-    },
-  },
-  methods: {
-    handle_set_inivisible(path: Array<Number>) {
-      path.push(this.index);
-      this.$emit("set_invisible", path);
-    },
-    handle_set_visible(path: Array<Number>) {
-      path.push(this.index);
-      this.$emit("set_visible", path);
-    },
-    open_page() {
-      window.open("https://ilias.uni-freiburg.de/" + this.node.uri);
-    },
-  },
-  setup(props, { emit }) {
-    let expanded = ref(false);
-    let { edit_visibility } = useVisibility();
-    function handle_click() {
-      if (edit_visibility.value) {
-        if (props.node.visible) {
-          emit("set_invisible", [props.index]);
-        } else {
-          emit("set_visible", [props.index]);
-        }
-      } else {
-        expanded.value = !expanded.value;
-      }
-    }
+.node_tree_item
+  cursor: pointer
 
-    const { activate_note, reset_note, active } = useNotes();
-
-    function open_folder() {
-      axios.post("/api/open/", {
-        path: props.node.breed.Folder.path,
-      });
-    }
-
-    const get_type = function (breed: any) {
-      if (typeof breed == "object") {
-        return Object.keys(breed)[0];
-      } else {
-        return breed;
-      }
-    };
-    return {
-      expanded,
-      edit_visibility,
-      handle_click,
-      get_type,
-      activate_note,
-      open_folder,
-    };
-  },
-});
-</script>
-
-<style>
-.node_tree {
-  list-style: none;
-  padding-inline-start: 20px;
-  max-height: 100%;
-}
-
-.node_tree_item {
-  cursor: pointer;
-}
-
-.shrinked {
-  max-height: 0px;
-  overflow: hidden;
-}
+.shrinked
+  max-height: 0px
+  overflow: hidden
 </style>
