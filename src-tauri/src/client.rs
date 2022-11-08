@@ -3,6 +3,7 @@ use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request
 use hyper_tls::HttpsConnector;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
+use tauri::api::file::read_string;
 use tokio::{
     fs::{create_dir_all, File},
     io::AsyncWriteExt,
@@ -10,11 +11,14 @@ use tokio::{
 
 use crate::ilias::IlNode;
 use crate::string_serializer;
+use ::tauri::api::path::config_dir;
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use reqwest::{redirect::Policy, ClientBuilder};
 use scraper::{Html, Selector};
 use std::{
-    fs::{self, read_to_string},
+    fs::{self},
+    path::PathBuf,
     str::Utf8Error,
     sync::{Arc, Mutex},
 };
@@ -27,7 +31,6 @@ pub enum ClientError {
     NoToken,
     #[error("Requested file didn't answer with content-type")]
     NoContentType,
-
     #[error("Client Error")]
     #[serde(with = "string_serializer")]
     Client(#[from] hyper::Error),
@@ -57,19 +60,26 @@ pub struct Credentials {
     pw: String,
 }
 
-fn load_creds() -> anyhow::Result<Credentials> {
-    Ok(serde_json::from_str::<Credentials>(&read_to_string(
-        "credentials.json",
-    )?)?)
+fn creds_path() -> Option<PathBuf> {
+    config_dir().map(|mut path| {
+        path.push("credentials.json");
+        path
+    })
 }
 
-fn save_creds(creds: &Credentials) -> anyhow::Result<()> {
-    fs::write("credentials.json", serde_json::to_string(creds)?)?;
+fn load_creds() -> Result<Credentials> {
+    let path = creds_path().ok_or(anyhow!("can't create path"))?;
+    Ok(serde_json::from_str::<Credentials>(&read_string(path)?)?)
+}
+
+fn save_creds(creds: &Credentials) -> Result<()> {
+    let path = creds_path().ok_or(anyhow!("can't create path"))?;
+    fs::write(path, serde_json::to_string(creds)?)?;
     Ok(())
 }
 
 impl IliasClient {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub async fn new() -> Result<Self> {
         let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
         let creds = load_creds()?;
         let token = Self::acquire_token(&creds).await?;
@@ -107,8 +117,9 @@ impl IliasClient {
             .unwrap()
             .value
             .clone();
-        if save_creds(creds).is_err() {
-            warn!("couldn't save credentials")
+
+        if let Err(err) = save_creds(creds) {
+            warn!("couldn't save credentials because of: {err}")
         }
         Ok(token)
     }
@@ -141,7 +152,7 @@ impl IliasClient {
         Ok(())
     }
 
-    pub async fn get_page(&self, uri: &str) -> anyhow::Result<Html, ClientError> {
+    pub async fn get_page(&self, uri: &str) -> Result<Html, ClientError> {
         let req = Request::builder()
             .method(Method::GET)
             .uri("https://ilias.uni-freiburg.de/".to_owned() + uri)
@@ -161,7 +172,7 @@ impl IliasClient {
         Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
     }
 
-    pub async fn download_file(&self, file_node: Arc<Mutex<IlNode>>) -> anyhow::Result<()> {
+    pub async fn download_file(&self, file_node: Arc<Mutex<IlNode>>) -> Result<()> {
         let req = {
             let node = file_node.lock().unwrap();
             info!("Downloading file {}", node.title);
