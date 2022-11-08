@@ -2,18 +2,11 @@ use crate::{
     client::{ClientError, Credentials, IliasClient},
     tree::{update_node, TreeError},
 };
-use futures::{SinkExt, StreamExt};
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, read_to_string},
     path::PathBuf,
     sync::{Arc, Mutex},
-};
-use thiserror::Error;
-use tokio::{
-    net::{TcpListener, TcpStream},
-    signal,
 };
 
 const ILIAS_ROOT: &str =
