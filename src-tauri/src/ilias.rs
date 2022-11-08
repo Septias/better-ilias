@@ -86,10 +86,6 @@ pub struct IliasTree {
 
 impl IliasTree {
     pub async fn new() -> Self {
-        if let Ok(save_data) = read_to_string("path") {
-            serde_json::from_str(&save_data).unwrap()
-        } else {
-        }
         Self {
             tree: read_to_string("path")
                 .ok()

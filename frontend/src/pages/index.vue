@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api'
 import { computed, ref } from 'vue'
 import type { IlNode } from '~/types'
 
-const root_node = ref(await invoke('get_root') as IlNode)
+/* const root_node = ref(await invoke('get_root') as IlNode)
 
 function handle_set_visible(path) {
   let node = root_node.value
@@ -20,18 +20,20 @@ function handle_set_inivisible(path) {
     node = node.children[index]
   }
   node.visible = false
-}
+} */
 
 const updating = ref(false)
-
-const folders = computed(() => root_node.value.children.filter(node => node.breed.hasOwnProperty('Folder')))
+async function update() {
+  console.log(await invoke('update_root'))
+}
+// const folders = computed(() => root_node.value.children.filter(node => node.breed.hasOwnProperty('Folder')))
 </script>
 
 <template>
-  <h1 class="text-5xl m-5">
+  <h1 class="text-5xl m-5" @click="update">
     Better Ilias
   </h1>
-  <div
+  <!-- <div
     v-for="(child, index) in folders"
     :key="index"
     class="ml-5 cursor-pointer"
@@ -42,7 +44,7 @@ const folders = computed(() => root_node.value.children.filter(node => node.bree
       @set_invisible="handle_set_inivisible"
       @set_visible="handle_set_visible"
     />
-  </div>
+  </div> -->
 
   <div class="right-0 top-0 fixed">
     <UpdateIcon :updating="updating" @click="update" />

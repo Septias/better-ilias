@@ -7,3 +7,6 @@ sqlite3.lib
 db.*
 data/Studium
 target
+
+credentials.json
+save.json

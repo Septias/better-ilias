@@ -37,6 +37,7 @@ urlencoding = "2.1.2"
 anyhow = "1.0.66"
 thiserror = "1.0.24"
 futures = "0.3.25"
+headless_chrome = {git = "https://github.com/atroche/rust-headless-chrome"}
 
 [dependencies.hyper]
 features = ["client", "http1"]
