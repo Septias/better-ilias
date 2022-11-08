@@ -1,33 +1,32 @@
 <script setup lang="ts">
+import { invoke } from '@tauri-apps/api'
 import { ref } from 'vue'
-import { useNotes } from './compositions'
 
-const username = ref('')
-const password = ref('')
-const persistent = ref(false)
+const username = useStorage('un', '')
+const password = useStorage('pw', '')
 const wrong = ref('')
 const requesting = ref(false)
 
-const send_credentials = () => {
+const router = useRouter()
+const login = async () => {
   requesting.value = true
   wrong.value = ''
-  axios
-    .post('api/credentials', {
-      username: username.value,
-      password: password.value,
+
+  try {
+    await invoke('login', {
+      creds: {
+        name: username.value,
+        pw: password.value,
+      },
     })
-    .then((resp) => {
-      if (resp.data.status === 'ok') {
-        wrong.value = ''
-        emit('close')
-      }
-      else {
-        wrong.value = resp.data.status
-      }
-    })
-    .catch((err) => {
-      console.err(err)
-    }).finally(() => requesting.value = false)
+    router.push('/')
+  }
+  catch (e) {
+    console.error(e)
+  }
+  finally {
+    requesting.value = false
+  }
 }
 </script>
 
@@ -37,7 +36,7 @@ const send_credentials = () => {
   >
     <form
       class="bg-main rounded-xl border-2 border-accent p-4 custom_form text-xl"
-      @submit.prevent="send_credentials"
+      @submit.prevent="login"
       @click.stop=""
     >
       <p v-if="wrong" class="text-sm text-accent">
@@ -50,13 +49,13 @@ const send_credentials = () => {
         v-model="password"
         autocomplete="current-password"
         class="block w-full"
-        type="password"
       >
       <button
         type="submit"
         class="button px-2 rounded float-right"
         :class="requesting ? 'bg-gray-600' : 'bg-accent'"
         :disabled="requesting"
+        @click="login"
       >
         Ok!
       </button>

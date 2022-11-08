@@ -4,7 +4,7 @@
   "packageManager": "pnpm@7.8.0",
   "scripts": {
     "build": "vite-ssg build",
-    "dev": "vite --port 3333 --open",
+    "dev": "vite --port 3333",
     "lint": "eslint .",
     "preview": "vite preview",
     "preview-https": "serve dist",
@@ -13,6 +13,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@tauri-apps/api": "^1.1.1",
     "@unocss/reset": "^0.45.28",
     "@vueuse/core": "^9.3.0",
     "@vueuse/head": "^0.9.7",

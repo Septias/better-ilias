@@ -12,7 +12,6 @@ declare module '@vue/runtime-core' {
     Folder: typeof import('./components/Folder.vue')['default']
     Forum: typeof import('./components/Forum.vue')['default']
     Leaf: typeof import('./components/Leaf.vue')['default']
-    Login: typeof import('./pages/login.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SelectBox: typeof import('./components/SelectBox.vue')['default']

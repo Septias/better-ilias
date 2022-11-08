@@ -1,7 +1,9 @@
-<script setup lang="ts">
+<script setup lang="ts" async>
+import { invoke } from '@tauri-apps/api'
 import { computed, ref } from 'vue'
+import type { IlNode } from '~/types'
 
-const { update, root_node } = useTreeStore()
+const root_node = ref(await invoke('get_root') as IlNode)
 
 function handle_set_visible(path) {
   let node = root_node.value
