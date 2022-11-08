@@ -24,18 +24,23 @@ pub struct IliasClient {
     client: ClientType,
     token: String,
 }
+use crate::string_serializer;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum ClientError {
     #[error("Client has no token")]
     NoToken,
     #[error("Requested file didn't answer with content-type")]
     NoContentType,
+
     #[error("Client Error")]
+    #[serde(with = "string_serializer")]
     Client(#[from] hyper::Error),
     #[error("Parse Error")]
+    #[serde(with = "string_serializer")]
     Parser(#[from] Utf8Error),
     #[error("Reqwest Error")]
+    #[serde(with = "string_serializer")]
     ReqwestError(#[from] reqwest::Error),
     #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
     BadCredentials,
@@ -84,9 +89,10 @@ impl IliasClient {
         Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
     }
 
-    pub async fn with_creds(creds: Credentials) -> anyhow::Result<Self> {
+    pub async fn with_creds(creds: Credentials) -> Result<Self, ClientError> {
         let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
         let token = Self::acquire_token(&creds).await?;
+        save_creds(&creds).map_err(|e| warn!("{e}")).ok();
         Ok(IliasClient { client, token })
     }
 

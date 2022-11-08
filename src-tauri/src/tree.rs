@@ -7,12 +7,12 @@ use futures::future::join_all;
 use lazy_static::lazy_static;
 
 use scraper::{ElementRef, Selector};
-use tokio::{
-    task::{JoinHandle},
-};
+use serde::Serialize;
+use thiserror::Error;
+use tokio::task::JoinHandle;
 
 use crate::{
-    client::{IliasClient},
+    client::{ClientError, IliasClient},
     ilias::{IlNode, IlNodeType},
 };
 
@@ -124,7 +124,7 @@ impl<'a> HypNode<'a> {
 pub fn update_node(
     client: Arc<IliasClient>,
     node: Arc<Mutex<IlNode>>,
-) -> JoinHandle<anyhow::Result<Arc<Mutex<IlNode>>>> {
+) -> JoinHandle<Result<Arc<Mutex<IlNode>>, TreeError>> {
     tokio::spawn(async move {
         let mut child_handles = vec![];
         let mut download_handles = vec![];
@@ -161,11 +161,15 @@ pub fn update_node(
                             }));
                         }
                         Some(node)
-                    } else { hypnode.into_node(
-                        path.as_ref()
-                            .expect("node with children must have path")
-                            .clone(),
-                    ).map(|node| Arc::new(Mutex::new(node))) }
+                    } else {
+                        hypnode
+                            .into_node(
+                                path.as_ref()
+                                    .expect("node with children must have path")
+                                    .clone(),
+                            )
+                            .map(|node| Arc::new(Mutex::new(node)))
+                    }
                 })
                 .collect()
         } else {
@@ -191,4 +195,10 @@ pub fn update_node(
         join_all(download_handles).await;
         Ok(node)
     })
+}
+
+#[derive(Debug, Error, Serialize)]
+pub enum TreeError {
+    #[error(transparent)]
+    Client(#[from] ClientError),
 }
