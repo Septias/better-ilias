@@ -181,7 +181,6 @@ impl IliasClient {
     pub async fn download_file(&self, file_node: Arc<Mutex<IlNode>>) -> Result<()> {
         let req = {
             let node = file_node.lock().unwrap();
-            info!("Downloading file {}", node.title);
             Request::builder()
                 .method(Method::GET)
                 .uri(&node.uri)
@@ -215,7 +214,8 @@ impl IliasClient {
             create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap_or_else(|_| panic!("{:?}", path));
-            let mut file = File::create(path).await?;
+            let mut file = File::create(&path).await?;
+            info!("Downloading file {:?}", path);
             while let Some(chunk) = resp.body_mut().data().await {
                 let chunk = chunk?;
                 file.write_all(&chunk).await?;

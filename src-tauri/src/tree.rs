@@ -107,7 +107,7 @@ impl<'a> HypNode<'a> {
             Some("frm") => Some(IlNodeType::Forum),
             Some("webr") => Some(IlNodeType::DirectLink),
             Some("file") => Some(IlNodeType::File {
-                local: false,
+                local: true,
                 path,
                 version: self.version().unwrap_or(0) as u16,
             }),
@@ -156,7 +156,7 @@ pub fn update_node(
                         .iter()
                         .position(|child| child.lock().unwrap().uri == hypnode.uri().unwrap());
 
-                    // if we find the child we replace it
+                    // if we find the child we might replace it
                     if let Some(node_index) = position {
                         let node = children.remove(node_index);
                         let change = hypnode.compare(&mut node.lock().unwrap());
@@ -169,13 +169,23 @@ pub fn update_node(
                         }
                         Some(node)
                     } else {
-                        hypnode
-                            .into_node(
-                                path.as_ref()
-                                    .expect("node with children must have path")
-                                    .clone(),
-                            )
-                            .map(|node| Arc::new(Mutex::new(node)))
+                        if let Some(node) = hypnode.into_node(
+                            path.as_ref()
+                                .expect("program logic shoul ensure this")
+                                .clone(),
+                        ) {
+                            let node = Arc::new(Mutex::new(node));
+                            let node_clone = node.clone();
+                            if node.lock().unwrap().breed.is_file() {
+                                let client = client.clone();
+                                download_handles.push(tokio::spawn(async move {
+                                    client.download_file(node_clone).await
+                                }));
+                            };
+                            Some(node)
+                        } else {
+                            None
+                        }
                     }
                 })
                 .collect()
@@ -226,11 +236,17 @@ pub fn update_root(
 
                     IlNode {
                         uri,
-                        title,
                         breed: IlNodeType::Folder {
                             store_files: true,
-                            path: ROOT_PATH.into(),
+                            // This is done sooo fishy xD
+                            path: Some(PathBuf::from(ROOT_PATH))
+                                .map(|mut path| {
+                                    path.push(&title);
+                                    path
+                                })
+                                .unwrap(),
                         },
+                        title,
                         visible: true,
                         children: Some(vec![]),
                     }

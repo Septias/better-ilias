@@ -38,7 +38,7 @@ const folders = computed(() => root_node.value.children!.filter(node => get_bree
   button.i-carbon-download.text-white(@click='update')
 .flex.justify-center.items-center.flex-col
   div.flex.flex-col.gap
-    h1.text-5xl.m-5.text-white(@click='update') Better Ilias
+    h1.text-5xl.m-5.text-white Better Ilias
     .ml-5.cursor-pointer(v-for='(child, index) in folders' :key='index')
       folder(:index='index' :node='child' @set_invisible='handle_set_inivisible' @set_visible='handle_set_visible')
 </template>

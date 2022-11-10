@@ -81,6 +81,10 @@ impl IlNodeType {
             None
         }
     }
+
+    pub fn is_file(&self) -> bool {
+        matches!(self, IlNodeType::File { .. })
+    }
 }
 
 #[derive(Clone)]
@@ -112,7 +116,10 @@ impl IliasTree {
         let client = self.client.lock().unwrap().clone();
         if let Some(client) = client {
             info!("updating root node");
-            update_root(client.clone(), self.tree.clone()).await.unwrap()?;
+            update_root(client.clone(), self.tree.clone())
+                .await
+                .unwrap()?;
+            info!("successfully updated root node");
             Ok(())
         } else {
             Err(TreeError::Client(ClientError::NoToken))
