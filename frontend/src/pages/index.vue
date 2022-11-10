@@ -1,11 +1,14 @@
 <script setup lang="ts" async>
-import { invoke } from '@tauri-apps/api'
 import { computed, ref } from 'vue'
 import NProgress from 'nprogress'
+import { invoke } from '@tauri-apps/api'
 import type { IlNode } from '~/types'
 import { IlNodeType } from '~/types'
-import { get_breed } from '~/utils'
-const root_node = ref(await invoke('get_root') as IlNode)
+import { get_breed, invoke_log } from '~/utils'
+const root_node = ref(await invoke_log('get_root') as IlNode)
+
+const router = useRouter()
+invoke('login_cached').catch(() => router.push('/login'))
 
 function handle_set_visible(path: any) {
   let node = root_node.value
@@ -26,8 +29,8 @@ function handle_set_inivisible(path: any) {
 
 async function update() {
   NProgress.start()
-  await invoke('update_root')
-  root_node.value = await invoke('get_root') as IlNode
+  await invoke_log('update_root')
+  root_node.value = await invoke_log('get_root') as IlNode
   NProgress.done()
 }
 const folders = computed(() => root_node.value.children!.filter(node => get_breed(node.breed) === IlNodeType.Folder))

@@ -24,6 +24,11 @@ async fn login(
 }
 
 #[tauri::command]
+async fn login_cached(ilias: tauri::State<'_, Arc<IliasTree>>) -> Result<(), String> {
+    ilias.login_cached().await.map_err(|err| err.to_string())
+}
+
+#[tauri::command]
 fn is_authenticated(ilias: tauri::State<'_, Arc<IliasTree>>) -> bool {
     ilias.is_authenticated()
 }
@@ -48,6 +53,7 @@ async fn main() {
         .manage(tree)
         .invoke_handler(tauri::generate_handler![
             login,
+            login_cached,
             is_authenticated,
             update_root,
             get_root

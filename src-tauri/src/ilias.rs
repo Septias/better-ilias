@@ -108,7 +108,7 @@ impl IliasTree {
                 .flatten()
                 .map(|data| Arc::new(Mutex::new(serde_json::from_str::<IlNode>(&data).unwrap())))
                 .unwrap_or_default(),
-            client: Arc::new(Mutex::new(IliasClient::new().await.ok().map(Arc::new))),
+            client: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -128,6 +128,12 @@ impl IliasTree {
 
     pub async fn login(&self, creds: Credentials) -> Result<(), ClientError> {
         let client = IliasClient::with_creds(creds).await?;
+        *self.client.lock().unwrap() = Some(Arc::new(client));
+        Ok(())
+    }
+
+    pub async fn login_cached(&self) -> anyhow::Result<()> {
+        let client = IliasClient::new().await?;
         *self.client.lock().unwrap() = Some(Arc::new(client));
         Ok(())
     }
