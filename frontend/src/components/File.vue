@@ -9,8 +9,7 @@ const props = defineProps({
 })
 
 async function open_file() {
-  console.log(
-    await invoke_log('open', { path: props.node.breed.File.path }))
+  await invoke_log('open', { path: props.node.breed.File.path })
 }
 </script>
 

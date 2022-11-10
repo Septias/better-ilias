@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { edit_visibility } from '~/composables/visibility'
+import { invoke_log } from '~/utils'
 
-defineProps({
+const props = defineProps({
   node: {
     type: Object,
     required: true,
   },
 })
+
+async function open() {
+  await invoke_log('open', { path: props.node.uri })
+}
 </script>
 
 <template>
@@ -20,8 +25,7 @@ defineProps({
     <template #body>
       <a
         v-if="!edit_visibility"
-        :href="node.uri"
-        target="_blank"
+        @click="open"
       >{{ node.title }}</a>
       <template v-else>
         {{ node.title }}
