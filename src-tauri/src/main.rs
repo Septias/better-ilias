@@ -3,11 +3,11 @@
     windows_subsystem = "windows"
 )]
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use client::{ClientError, Credentials};
 use ilias::{IlNode, IliasTree};
-use log::warn;
+use log::{info, warn};
 use tauri::generate_context;
 use tree::TreeError;
 mod client;
@@ -43,6 +43,20 @@ fn get_root(ilias: tauri::State<'_, Arc<IliasTree>>) -> IlNode {
     ilias.get_root_node()
 }
 
+#[tauri::command]
+fn open(path: PathBuf) -> Result<(), String> {
+    match open::that(&path) {
+        Ok(_) => {
+            info!("{path:?}");
+            Ok(())
+        }
+        Err(e) => {
+            warn!("{e:?}");
+            Err(e.to_string())
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -56,7 +70,8 @@ async fn main() {
             login_cached,
             is_authenticated,
             update_root,
-            get_root
+            get_root,
+            open
         ])
         .build(generate_context!())
         .expect("error while running tauri application");

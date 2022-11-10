@@ -1,13 +1,16 @@
 <script setup lang="ts">
-defineProps({
+import { invoke_log } from '~/utils'
+
+const props = defineProps({
   node: {
     type: Object,
     required: true,
   },
 })
 
-function open_file() {
-  // TODO
+async function open_file() {
+  console.log(
+    await invoke_log('open', { path: props.node.breed.File.path }))
 }
 </script>
 

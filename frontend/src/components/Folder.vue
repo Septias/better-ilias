@@ -2,6 +2,7 @@
 import type { PropType } from 'vue'
 import { ref } from 'vue'
 import type { IlNode } from '~/types'
+import { invoke_log } from '~/utils'
 
 const props = defineProps({
   node: {
@@ -31,12 +32,12 @@ function handle_click() {
   }
 }
 
-function open_folder() {
-  // ws open folder
+async function open_folder() {
+  await invoke_log('open', { path: props.node.breed.Folder.path })
 }
 
-function open_page() {
-  window.open(`https://ilias.uni-freiburg.de/${props.node.uri}`)
+async function open_page() {
+  await invoke_log('open', { path: `https://ilias.uni-freiburg.de/${props.node.uri}` })
 }
 
 const folder_icon = computed(() => {

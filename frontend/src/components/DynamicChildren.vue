@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { PropType } from 'vue'
+import type { PropType, Ref } from 'vue'
 
 import File from './File.vue'
 import DirectLink from './DirectLink.vue'
@@ -18,7 +18,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['setVisible', 'setInvisible'])
+const emit = defineEmits(['setVisible', 'setInvisible', 'size'])
 
 function get_component(breed: any) {
   switch (get_breed(breed)) {
@@ -47,10 +47,17 @@ function handle_set_visible(path: Array<Number>) {
   path.push(props.index)
   emit('setVisible', path)
 }
+
+const root: Ref<HTMLElement | undefined> = ref()
+
+onMounted(() => {
+  const size = root.value!.scrollHeight
+  emit('size', size)
+})
 </script>
 
 <template lang="pug">
-ul.node_tree
+ul.node_tree(ref="root")
   li.node_tree_item(
     v-for='(child, index) in children'
     :key='child.id'
