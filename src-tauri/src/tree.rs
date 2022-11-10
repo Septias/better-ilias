@@ -59,25 +59,24 @@ impl<'a> HypNode<'a> {
 
         inner_html[start_index..end_index].parse().ok()
     }
-    pub fn compare(self, node: &mut IlNode) -> bool {
-        if node.uri != self.uri().expect("can't extract uri from node") {
-            false
+    pub fn same_node(self, node: &mut IlNode) -> bool {
+        if node.uri == self.uri().expect("can't extract uri from node") {
+            true
         } else {
             match &mut node.breed {
                 IlNodeType::File { version, .. } => {
                     if let Some(new_version) = self.version() {
-                        if version != &(new_version as u16) {
-                            *version = new_version as u16;
+                        if *version == new_version {
                             true
                         } else {
-                            *version = new_version as u16;
+                            *version = new_version;
                             false
                         }
                     } else {
-                        false
+                        true
                     }
                 }
-                _ => false,
+                _ => true,
             }
         }
     }
@@ -87,7 +86,7 @@ impl<'a> HypNode<'a> {
         let mut chars = title.chars();
         let start = chars.next().unwrap();
         let rest = chars.map(|character| match character {
-            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => ' ',
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
             _ => character
                 .to_lowercase()
                 .next()
@@ -109,7 +108,7 @@ impl<'a> HypNode<'a> {
             Some("file") => Some(IlNodeType::File {
                 local: true,
                 path,
-                version: self.version().unwrap_or(0) as u16,
+                version: self.version().unwrap_or(0),
             }),
             Some("xvid") => Some(IlNodeType::Video),
             Some("exc") => Some(IlNodeType::Exercise),
@@ -159,8 +158,8 @@ pub fn update_node(
                     // if we find the child we might replace it
                     if let Some(node_index) = position {
                         let node = children.remove(node_index);
-                        let change = hypnode.compare(&mut node.lock().unwrap());
-                        if change {
+                        let same_node = hypnode.same_node(&mut node.lock().unwrap());
+                        if !same_node {
                             let node = node.clone();
                             let client = client.clone();
                             download_handles.push(tokio::spawn(async move {
@@ -223,6 +222,7 @@ pub fn update_root(
     client: Arc<IliasClient>,
     root: Arc<Mutex<IlNode>>,
 ) -> JoinHandle<Result<(), TreeError>> {
+    let mut root_children = root.lock().unwrap().children.take();
     tokio::spawn(async move {
         let children = {
             let html = client.get_page(ILIAS_ROOT).await?;
@@ -232,16 +232,34 @@ pub fn update_root(
                 .map(|elem| {
                     let link = elem.select(&ROOT_LINK).next().unwrap();
                     let uri = link.value().attr("href").unwrap().to_string();
-                    let title = link.inner_html();
+                    if let Some(children) = &mut root_children {
+                        if let Some(position) = children
+                            .iter()
+                            .position(|node| node.lock().unwrap().uri == uri)
+                        {
+                            return children.remove(position);
+                        }
+                    }
 
-                    IlNode {
+                    let title = link.inner_html();
+                    let folder = title
+                        .chars()
+                        .map(|character| match character {
+                            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
+                            _ => character
+                                .to_lowercase()
+                                .next()
+                                .unwrap_or_else(|| panic!("no lowercase for char {}", character)),
+                        })
+                        .collect::<String>();
+                    Arc::new(Mutex::new(IlNode {
                         uri,
                         breed: IlNodeType::Folder {
                             store_files: true,
                             // This is done sooo fishy xD
                             path: Some(PathBuf::from(ROOT_PATH))
                                 .map(|mut path| {
-                                    path.push(&title);
+                                    path.push(folder);
                                     path
                                 })
                                 .unwrap(),
@@ -249,9 +267,8 @@ pub fn update_root(
                         title,
                         visible: true,
                         children: Some(vec![]),
-                    }
+                    }))
                 })
-                .map(|child| Arc::new(Mutex::new(child)))
                 .collect::<Vec<_>>()
         };
 

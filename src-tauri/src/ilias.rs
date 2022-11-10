@@ -49,7 +49,7 @@ pub enum IlNodeType {
     DirectLink,
     File {
         path: PathBuf,
-        version: u16,
+        version: usize,
         local: bool,
     },
     Video,

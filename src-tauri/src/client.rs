@@ -40,7 +40,7 @@ pub enum ClientError {
     Parser(#[from] Utf8Error),
     #[error("Reqwest Error")]
     #[serde(with = "string_serializer")]
-    ReqwestError(#[from] reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
     #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
     _BadCredentials,
 }
