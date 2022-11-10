@@ -12,7 +12,7 @@ defineProps({
 <template>
   <Leaf color="text-purple-500" :node="node">
     <template #default>
-      <carbon-settings />
+      <div class="i-carbon-settings" />
     </template>
     <template #body>
       <a

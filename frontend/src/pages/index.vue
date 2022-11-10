@@ -6,10 +6,8 @@ import type { IlNode } from '~/types'
 import { IlNodeType } from '~/types'
 import { get_breed } from '~/utils'
 const root_node = ref(await invoke('get_root') as IlNode)
-console.log(root_node.value)
 
 function handle_set_visible(path: any) {
-  console.log(path)
   let node = root_node.value
   for (const index of path.reverse()) {
     node = node.children![index]
@@ -26,33 +24,26 @@ function handle_set_inivisible(path: any) {
   node.visible = false
 }
 
-const updating = ref(false)
 async function update() {
   NProgress.start()
-  console.log(await invoke('update_root'))
+  await invoke('update_root')
+  root_node.value = await invoke('get_root') as IlNode
   NProgress.done()
 }
 const folders = computed(() => root_node.value.children!.filter(node => get_breed(node.breed) === IlNodeType.Folder))
 </script>
 
-<template>
-  <h1 class="text-5xl m-5" @click="update">
-    Better Ilias
-  </h1>
-  <div
-    v-for="(child, index) in folders"
-    :key="index"
-    class="ml-5 cursor-pointer"
-  >
-    <Folder
-      :index="index"
-      :node="child"
-      @set_invisible="handle_set_inivisible"
-      @set_visible="handle_set_visible"
-    />
-  </div>
-
-  <div class="right-0 top-0 fixed">
-    <UpdateIcon :updating="updating" @click="update" />
-  </div>
+<template lang="pug">
+.right-0.top-0.fixed.p-2
+  button.i-carbon-download.text-white(@click='update')
+.flex.justify-center.items-center.flex-col
+  div.flex.flex-col.gap
+    h1.text-5xl.m-5.text-white(@click='update') Better Ilias
+    .ml-5.cursor-pointer(v-for='(child, index) in folders' :key='index')
+      folder(:index='index' :node='child' @set_invisible='handle_set_inivisible' @set_visible='handle_set_visible')
 </template>
+
+<style lang="sass">
+.gap
+  gap: 0.2rem
+</style>
