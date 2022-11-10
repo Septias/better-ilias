@@ -7,8 +7,14 @@ import { IlNodeType } from '~/types'
 import { get_breed, invoke_log } from '~/utils'
 const root_node = ref(await invoke_log('get_root') as IlNode)
 
+const logging_in = ref(false)
 const router = useRouter()
-invoke('login_cached').catch(() => router.push('/login'))
+invoke('login_cached')
+  .catch((err) => { router.push('/login'); console.log(err) })
+  .then(() => {
+    console.log('logged in')
+    logging_in.value = false
+  })
 
 function handle_set_visible(path: any) {
   let node = root_node.value
@@ -37,7 +43,7 @@ const folders = computed(() => root_node.value.children!.filter(node => get_bree
 </script>
 
 <template lang="pug">
-.right-0.top-0.fixed.p-2
+.right-0.top-0.fixed.p-2(v-if="!logging_in")
   button.i-carbon-download.text-white(@click='update')
 .flex.justify-center.items-center.flex-col
   div.flex.flex-col.gap
