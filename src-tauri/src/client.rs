@@ -18,6 +18,7 @@ use reqwest::{redirect::Policy, ClientBuilder};
 use scraper::{Html, Selector};
 use std::{
     fs::{self},
+    io,
     path::PathBuf,
     str::Utf8Error,
     sync::{Arc, Mutex},
@@ -62,7 +63,7 @@ pub struct Credentials {
 
 fn creds_path() -> Option<PathBuf> {
     config_dir().map(|mut path| {
-        path.push("credentials.json");
+        path.push("better-ilias/credentials.json");
         path
     })
 }
@@ -74,7 +75,12 @@ fn load_creds() -> Result<Credentials> {
 
 fn save_creds(creds: &Credentials) -> Result<()> {
     let path = creds_path().ok_or(anyhow!("can't create path"))?;
-    fs::write(path, serde_json::to_string(creds)?)?;
+    if let Err(e) = fs::write(&path, serde_json::to_string(creds)?) {
+        if e.kind() == io::ErrorKind::NotFound {
+            fs::create_dir_all(path.parent().unwrap())?;
+            fs::write(path, serde_json::to_string(creds)?)?;
+        }
+    }
     Ok(())
 }
 

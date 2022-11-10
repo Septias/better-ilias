@@ -2,13 +2,15 @@ use crate::{
     client::{ClientError, Credentials, IliasClient},
     tree::{update_root, TreeError},
 };
+use ::tauri::api::path::cache_dir;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::{self, read_to_string},
+    fs, io,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
+use tauri::api::file::read_string;
 
 pub const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
@@ -87,11 +89,19 @@ pub struct IliasTree {
     client: Arc<Mutex<Option<Arc<IliasClient>>>>,
 }
 
+fn saves_path() -> Option<PathBuf> {
+    cache_dir().map(|mut path| {
+        path.push("better-ilias/save.json");
+        path
+    })
+}
+
 impl IliasTree {
     pub async fn new() -> Self {
         Self {
-            tree: read_to_string("path")
-                .ok()
+            tree: saves_path()
+                .map(|path| read_string(path).ok())
+                .flatten()
                 .map(|data| Arc::new(Mutex::new(serde_json::from_str::<IlNode>(&data).unwrap())))
                 .unwrap_or_default(),
             client: Arc::new(Mutex::new(IliasClient::new().await.ok().map(Arc::new))),
@@ -99,10 +109,10 @@ impl IliasTree {
     }
 
     pub async fn update_root(&self) -> Result<(), TreeError> {
-        let client = self.client.lock().unwrap().take();
+        let client = self.client.lock().unwrap().clone();
         if let Some(client) = client {
             info!("updating root node");
-            update_root(client, self.tree.clone()).await.unwrap()?;
+            update_root(client.clone(), self.tree.clone()).await.unwrap()?;
             Ok(())
         } else {
             Err(TreeError::Client(ClientError::NoToken))
@@ -123,8 +133,15 @@ impl IliasTree {
         self.tree.lock().unwrap().clone()
     }
 
-    pub fn save(&self) {
+    pub fn save(&self) -> anyhow::Result<()> {
         let data = self.tree.lock().unwrap();
-        fs::write("save.json", serde_json::to_string(&*data).unwrap()).unwrap()
+        let path = saves_path().ok_or(anyhow::anyhow!("can't create path"))?;
+        if let Err(e) = fs::write(&path, serde_json::to_string(&*data).unwrap()) {
+            if e.kind() == io::ErrorKind::NotFound {
+                fs::create_dir_all(path.parent().unwrap())?;
+                fs::write(path, serde_json::to_string(&*data).unwrap())?;
+            }
+        }
+        Ok(())
     }
 }

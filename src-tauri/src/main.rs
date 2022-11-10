@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use client::{ClientError, Credentials};
 use ilias::{IlNode, IliasTree};
+use log::warn;
 use tauri::generate_context;
 use tree::TreeError;
 mod client;
@@ -40,6 +41,7 @@ fn get_root(ilias: tauri::State<'_, Arc<IliasTree>>) -> IlNode {
 #[tokio::main]
 async fn main() {
     env_logger::init();
+
     let tree = Arc::new(IliasTree::new().await);
     let tree_clone = tree.clone();
     let app = tauri::Builder::default()
@@ -55,7 +57,7 @@ async fn main() {
 
     app.run(move |_app_handle, e| {
         if let tauri::RunEvent::Exit { .. } = e {
-            tree_clone.save();
+            tree_clone.save().map_err(|err| warn!("{err}")).ok();
         }
     });
 }
