@@ -42,7 +42,7 @@ pub enum ClientError {
     #[serde(with = "string_serializer")]
     Reqwest(#[from] reqwest::Error),
     #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
-    _BadCredentials,
+    BadCredentials,
 }
 
 lazy_static! {
@@ -113,21 +113,26 @@ impl IliasClient {
             .click()
             .unwrap();
         tab.type_str(&creds.pw).unwrap().press_key("Enter").unwrap();
-        tab.wait_for_element("#headerimage").unwrap();
 
-        let token = tab
-            .get_cookies()
-            .unwrap()
-            .iter()
-            .find(|elem| elem.name == "PHPSESSID")
-            .unwrap()
-            .value
-            .clone();
+        // This wats so long, maybe it is optimizable
+        match tab.wait_for_element("#headerimage") {
+            Ok(_) => {
+                let token = tab
+                    .get_cookies()
+                    .unwrap()
+                    .iter()
+                    .find(|elem| elem.name == "PHPSESSID")
+                    .unwrap()
+                    .value
+                    .clone();
 
-        if let Err(err) = save_creds(creds) {
-            warn!("couldn't save credentials because of: {err}")
+                if let Err(err) = save_creds(creds) {
+                    warn!("couldn't save credentials because of: {err}")
+                }
+                Ok(token)
+            }
+            Err(_) => Err(ClientError::BadCredentials),
         }
-        Ok(token)
     }
 
     /// Takes a ilias-link (which is a redirect) and replaces it with the correct location

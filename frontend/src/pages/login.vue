@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api'
 import { ref } from 'vue'
+import NProgress from 'nprogress'
 
 const username = useStorage('un', '')
 const password = useStorage('pw', '')
@@ -13,6 +14,7 @@ const login = async () => {
   wrong.value = ''
 
   try {
+    NProgress.start()
     await invoke('login', {
       creds: {
         name: username.value,
@@ -23,40 +25,28 @@ const login = async () => {
   }
   catch (e) {
     console.error(e)
+    wrong.value = 'Wrong username or password'
   }
   finally {
     requesting.value = false
+    NProgress.done()
   }
 }
 </script>
 
 <template>
-  <div
-    class="fixed h-full w-full flex justify-center items-center top-0 bg-main"
-  >
-    <form
-      class="bg-main rounded-xl border-2 border-accent p-4 custom_form text-xl"
-      @submit.prevent="login"
-      @click.stop=""
-    >
+  <div class="fixed h-full w-full flex justify-center items-center top-0 bg-main">
+    <form class="bg-main rounded-xl border-2 border-accent p-4 custom_form text-xl" @submit.prevent="login"
+      @click.stop="">
       <p v-if="wrong" class="text-sm text-accent">
         {{ wrong }}
       </p>
       <label>Benutzername</label>
       <input v-model="username" autocomplete="username" class="block w-full">
       <label>Passwort</label>
-      <input
-        v-model="password"
-        autocomplete="current-password"
-        class="block w-full"
-      >
-      <button
-        type="submit"
-        class="button px-2 rounded float-right"
-        :class="requesting ? 'bg-gray-600' : 'bg-accent'"
-        :disabled="requesting"
-        @click="login"
-      >
+      <input v-model="password" autocomplete="current-password" class="block w-full">
+      <button type="submit" class="button px-2 rounded float-right" :class="requesting ? 'bg-gray-600' : 'bg-accent'"
+        :disabled="requesting" @click="login">
         Ok!
       </button>
     </form>
