@@ -12,6 +12,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  isLocal: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['set_invisible', 'set_visible'])
@@ -28,20 +32,10 @@ function handle_click() {
 </script>
 
 <template>
-  <span
-    v-if="node.visible || edit_visibility"
-    class="p-1 rounded-sm hover:bg-accent text-white select-none"
-    :class="{ 'text-opacity-25': !node.visible && edit_visibility }"
-    @click="handle_click"
-  >
-    <svg
-      :class="color"
-      class="hover:text-white fill-current inline"
-      focusable="false"
-      width="1em"
-      height="1em"
-      viewBox="0 0 24 24"
-    >
+  <span v-if="node.visible || edit_visibility" class="p-1 rounded-sm hover:bg-accent text-white select-none"
+    :class="{ 'text-opacity-25': !node.visible && edit_visibility }" @click="handle_click">
+    <svg :class="color" class="hover:text-white fill-current inline" focusable="false" width="1em" height="1em"
+      viewBox="0 0 24 24">
       <slot name="default" />
     </svg>
     <slot name="body">

@@ -59,7 +59,7 @@ impl<'a> HypNode<'a> {
 
         inner_html[start_index..end_index].parse().ok()
     }
-    pub fn same_node(self, node: &mut IlNode) -> bool {
+    pub fn same_version(self, node: &mut IlNode) -> bool {
         if node.uri == self.uri().expect("can't extract uri from node") {
             true
         } else {
@@ -85,13 +85,12 @@ impl<'a> HypNode<'a> {
 
         let mut chars = title.chars();
         let start = chars.next().unwrap();
-        let rest = chars.map(|character| match character {
-            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
-            _ => character
-                .to_lowercase()
-                .next()
-                .unwrap_or_else(|| panic!("no lowercase for char {}", character)),
-        });
+        let rest = chars
+            .filter_map(|character| match character {
+                '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => None,
+                ' ' => Some('_'),
+                c => Some(c),
+            });
         path.push(std::iter::once(start).chain(rest).collect::<String>());
 
         let breed = match self.icon_name() {
@@ -106,6 +105,11 @@ impl<'a> HypNode<'a> {
             Some("frm") => Some(IlNodeType::Forum),
             Some("webr") => Some(IlNodeType::DirectLink),
             Some("file") => Some(IlNodeType::File {
+                local: true,
+                path,
+                version: self.version().unwrap_or(0),
+            }),
+            Some("file_inline") => Some(IlNodeType::File {
                 local: true,
                 path,
                 version: self.version().unwrap_or(0),
@@ -158,7 +162,7 @@ pub fn update_node(
                     // if we find the child we might replace it
                     if let Some(node_index) = position {
                         let node = children.remove(node_index);
-                        let same_node = hypnode.same_node(&mut node.lock().unwrap());
+                        let same_node = hypnode.same_version(&mut node.lock().unwrap());
                         if !same_node {
                             let node = node.clone();
                             let client = client.clone();
@@ -244,12 +248,10 @@ pub fn update_root(
                     let title = link.inner_html();
                     let folder = title
                         .chars()
-                        .map(|character| match character {
-                            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
-                            _ => character
-                                .to_lowercase()
-                                .next()
-                                .unwrap_or_else(|| panic!("no lowercase for char {}", character)),
+                        .filter_map(|character| match character {
+                            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => None,
+                            ' ' => Some('_'),
+                            c => Some(c),
                         })
                         .collect::<String>();
                     Arc::new(Mutex::new(IlNode {

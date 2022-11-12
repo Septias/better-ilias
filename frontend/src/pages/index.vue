@@ -5,16 +5,9 @@ import { invoke } from '@tauri-apps/api'
 import type { IlNode } from '~/types'
 import { IlNodeType } from '~/types'
 import { get_breed, invoke_log } from '~/utils'
-const root_node = ref(await invoke_log('get_root') as IlNode)
 
-const logging_in = ref(false)
-const router = useRouter()
-invoke('login_cached')
-  .catch((err) => { router.push('/login'); console.log(err) })
-  .then(() => {
-    console.log('logged in')
-    logging_in.value = false
-  })
+const root_node = ref(await invoke_log('get_root') as IlNode)
+const is_authenticated = ref(false)
 
 function handle_set_visible(path: any) {
   let node = root_node.value
@@ -39,11 +32,24 @@ async function update() {
   root_node.value = await invoke_log('get_root') as IlNode
   NProgress.done()
 }
+
+const router = useRouter()
+
+onMounted(() => {
+  is_authenticated.value = false
+  invoke('login_cached')
+    .catch((err) => { router.push('/login'); console.log(err) })
+    .then(() => {
+      console.log('logged in')
+      is_authenticated.value = true
+    })
+})
+
 const folders = computed(() => root_node.value.children!.filter(node => get_breed(node.breed) === IlNodeType.Folder))
 </script>
 
 <template lang="pug">
-.right-0.top-0.fixed.p-2(v-if="!logging_in")
+.right-0.top-0.fixed.p-2(v-if="is_authenticated")
   button.i-carbon-download.text-white(@click='update')
 .flex.justify-center.items-center.flex-col
   div.flex.flex-col.gap
