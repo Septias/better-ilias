@@ -86,7 +86,12 @@ fn save_creds(creds: &Credentials) -> Result<()> {
 
 impl IliasClient {
     pub async fn new() -> Result<Self> {
-        let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
+        let client = Arc::new(
+            Client::builder()
+                .pool_idle_timeout(None)
+                .pool_max_idle_per_host(100)
+                .build::<_, hyper::Body>(HttpsConnector::new()),
+        );
         let creds = load_creds()?;
         let token = Self::acquire_token(&creds).await?;
         Ok(IliasClient { client, token })
@@ -114,7 +119,7 @@ impl IliasClient {
             .unwrap();
         tab.type_str(&creds.pw).unwrap().press_key("Enter").unwrap();
 
-        // This wats so long, maybe it is optimizable
+        // This waits so long, maybe it is optimizable
         match tab.wait_for_element("#headerimage") {
             Ok(_) => {
                 let token = tab
@@ -211,7 +216,12 @@ impl IliasClient {
             path.clone()
         };
 
-        if path.extension().unwrap() == "mp4" {
+        if path.exists() {
+            return Ok(())
+        }
+
+        let extension = path.extension().unwrap();
+        if extension == "mp4" || extension == "zip" {
             *file_node.lock().unwrap().breed.get_local().unwrap() = false;
         }
 

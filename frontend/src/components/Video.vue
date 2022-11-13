@@ -7,6 +7,10 @@ defineProps({
     required: true,
   },
 })
+
+async function open() {
+  await invoke_log('open', { path: `https://ilias.uni-freiburg.de/${props.node.uri}` })
+}
 </script>
 
 <template>
@@ -17,7 +21,7 @@ defineProps({
     <template #body>
       <a
         v-if="!edit_visibility"
-        :href="`https://ilias.uni-freiburg.de/${node.uri}`"
+        @click="open"
       >{{ node.title }}</a>
       <template v-else>
         {{ node.title }}

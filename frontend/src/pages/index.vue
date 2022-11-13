@@ -7,6 +7,8 @@ import { IlNodeType } from '~/types'
 import { get_breed, invoke_log } from '~/utils'
 
 const root_node = ref(await invoke_log('get_root') as IlNode)
+console.log(root_node.value)
+
 const is_authenticated = ref(false)
 
 function handle_set_visible(path: any) {
@@ -49,8 +51,9 @@ const folders = computed(() => root_node.value.children!.filter(node => get_bree
 </script>
 
 <template lang="pug">
-.right-0.top-0.fixed.p-2(v-if="is_authenticated")
-  button.i-carbon-download.text-white(@click='update')
+.right-0.top-0.fixed.p-2
+  button.i-carbon-download.text-white(@click='update' v-if="is_authenticated")
+  span.text-white.p-1.bg-light_main(v-else) logging in...
 .flex.justify-center.items-center.flex-col
   div.flex.flex-col.gap
     h1.text-5xl.m-5.text-white Better Ilias

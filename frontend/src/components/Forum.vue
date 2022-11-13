@@ -10,7 +10,7 @@ const props = defineProps({
 })
 
 async function open() {
-  await invoke_log('open', { path: props.node.breed.File.path })
+  await invoke_log('open', { path: `https://ilias.uni-freiburg.de/${props.node.uri}` })
 }
 </script>
 
