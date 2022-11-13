@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { edit_visibility } from '~/composables/visibility'
+import { invoke_log } from '~/utils'
 
-defineProps({
+const props = defineProps({
   node: {
     type: Object,
     required: true,
