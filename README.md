@@ -1,25 +1,32 @@
 # BetterIlias
-A tool for better interaction with the managment-website from Albert-Ludwigs-Universität Freiburg.
+A tool for better interaction with the Ilias
 
 ## Features
-* Interatact with ilias through a nice frontend which doesn't need 2sec to load
-* Sync all files from ilias to local file system and open them through the frontend (no littered download folder)
-* Doesn't grill eyes when it's late
+* Responsive and modern frontend
+* Synchronization of files to local filesystem for easier access
+* Dark theme by default
 
-### Installation
-The easiest option is to download it from the [releases]()
-The second option is to manually build it.
+## Installation
+The easiest option is to download it from the [releases](https://github.com/Septias/better-ilias/releases)
+The second option is to manually build it as described below.
 
-### Dev
-#### Requirements
-1. You need Rust to compile the better_ilias.exe, get it [here] (https://www.rust-lang.org/tools/install)
-2. To compile the Frontend you need [Node](https://nodejs.org/en/) which contains npm. 
+## Dev
+### Requirements
+1. [Rust](https://www.rust-lang.org/tools/install)
+2. [Node](https://nodejs.org/en/)
 
+### Usage
 You can start the development process with 
+```
+cargo tauri dev
+```
+or 
 ```
 RUST_LOG="info" cargo tauri dev
 ```
-and build it with 
+to show logs.
+
+Build the project using
 ```
 cargo tauri build
 ```
