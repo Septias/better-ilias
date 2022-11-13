@@ -7,7 +7,7 @@
         "distDir": "../frontend/dist",
         "devPath": "http://localhost:3333/",
         "beforeDevCommand": "cd frontend; pnpm dev",
-        "beforeBuildCommand": "cd frontend; pnpm build"
+        "beforeBuildCommand": "cd frontend; pnpm i; pnpm build"
     },
     "tauri": {
         "bundle": {

@@ -8,7 +8,6 @@ export {}
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     DirectLink: typeof import('./components/DirectLink.vue')['default']
-    DynamicChild: typeof import('./components/DynamicChild.vue')['default']
     DynamicChildren: typeof import('./components/DynamicChildren.vue')['default']
     Exercise: typeof import('./components/Exercise.vue')['default']
     File: typeof import('./components/File.vue')['default']
@@ -18,7 +17,6 @@ declare module '@vue/runtime-core' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SelectBox: typeof import('./components/SelectBox.vue')['default']
-    SizeEmitting: typeof import('./components/SizeEmitting.vue')['default']
     UpdateIcon: typeof import('./components/UpdateIcon.vue')['default']
     Video: typeof import('./components/Video.vue')['default']
   }
