@@ -4,7 +4,7 @@
     "version": "1.0.0"
   },
   "build": {
-    "distDir": "../frontend/dist",
+    "distDir": "../dist",
     "devPath": "http://localhost:3333/",
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build"
