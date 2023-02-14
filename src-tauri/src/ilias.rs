@@ -3,7 +3,7 @@ use crate::{
     tree::{update_root, TreeError},
 };
 use ::tauri::api::path::cache_dir;
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::{
     fs, io,
@@ -127,8 +127,13 @@ impl IliasTree {
     }
 
     pub async fn login(&self, creds: Credentials) -> Result<(), ClientError> {
-        let client = IliasClient::with_creds(creds).await?;
-        *self.client.lock().unwrap() = Some(Arc::new(client));
+        match IliasClient::with_creds(creds).await {
+            Ok(client) => *self.client.lock().unwrap() = Some(Arc::new(client)),
+            Err(e) => {
+                warn!("{e}");
+                return Err(e);
+            }
+        }
         Ok(())
     }
 

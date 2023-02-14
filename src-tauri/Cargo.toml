@@ -1,6 +1,6 @@
 [package]
 name = "better-ilias"
-version = "0.1.0"
+version = "1.0.1"
 description = "A program to navigate Ilias and sync files to the local filesystem"
 authors = ["Sebastian Klähn"]
 repository = "https://github.com/Septias/better-ilias"
@@ -11,7 +11,7 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.1.1", features = [] }
+tauri-build = { version = "1.2.1", features = [] }
 
 [features]
 default = [ "custom-protocol" ]
@@ -25,35 +25,36 @@ winres = "0.1"
 
 [dependencies]
 serde_json = "1.0"
-tauri = { version = "1.1.2", features = ["api-all"] }
-itertools = "*"
-lazy_static = "1.4.0"
-open = "3.0.3"
-env_logger = "0.9.1"
-log = "0.4.17"
-hyper-tls = "0.5.0"
-scraper = "0.13.0"
-urlencoding = "2.1.2"
-anyhow = "1.0.66"
-thiserror = "1.0.24"
-futures = "0.3.25"
-headless_chrome = {git = "https://github.com/atroche/rust-headless-chrome"}
+tauri = { version = "1.2", features = ["api-all", "default"] }
+itertools = "0.10"
+lazy_static = "1.4"
+open = "3.0"
+env_logger = "0.10"
+log = "0.4"
+hyper-tls = "0.5"
+scraper = "0.14"
+urlencoding = "2.1"
+anyhow = "1.0"
+thiserror = "1.0"
+futures = "0.3"
+headless_chrome = {git="https://github.com/Billy-Sheppard/rust-headless-chrome.git", features = ["fetch"] }
+failure = "*"
 
 [dependencies.hyper]
 features = ["client", "http1"]
-version = "0.14.22"
+version = "0.14"
 
 [dependencies.serde]
 features = ["rc", "derive"]
-version = "1.0.147"
+version = "1.0"
 
 [dependencies.tokio]
-features = ["full"]
-version = "1.21.2"
+features = ["fs", "macros"]
+version = "1.24"
 
 [dependencies.reqwest]
 features = ["cookies", "blocking"]
-version = "0.11.12"
+version = "0.11"
 
 [dependencies.rocket]
 git = "https://github.com/SergioBenitez/Rocket"
