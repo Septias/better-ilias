@@ -26,6 +26,19 @@ use std::{
 use thiserror::Error;
 type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
 
+mod StringSerilizer {
+    use core::fmt::Debug;
+    use serde::ser::{Serialize, Serializer};
+    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Debug,
+        S: Serializer,
+    {
+        let j = format!("{:?}", value);
+        j.serialize(serializer)
+    }
+}
+
 #[derive(Debug, Error, Serialize)]
 pub enum ClientError {
     #[error("Client has no token")]
@@ -43,6 +56,9 @@ pub enum ClientError {
     Reqwest(#[from] reqwest::Error),
     #[error("Shiat da scheinen die Logindaten nicht zu stimmen :/ uwu")]
     BadCredentials,
+    #[error(transparent)]
+    #[serde(with = "string_serializer")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 lazy_static! {
@@ -104,30 +120,23 @@ impl IliasClient {
     }
 
     pub async fn acquire_token(creds: &Credentials) -> Result<String, ClientError> {
-        let browser = Browser::default().unwrap();
-        let tab = browser.wait_for_initial_tab().unwrap();
-        tab.navigate_to("https://ilias.uni-freiburg.de/shib_login.php?target=")
-            .unwrap();
-        tab.wait_for_element("input#LoginForm_username")
-            .unwrap()
-            .click()
-            .unwrap();
-        tab.type_str(&creds.name).unwrap();
-        tab.wait_for_element("input#LoginForm_password")
-            .unwrap()
-            .click()
-            .unwrap();
-        tab.type_str(&creds.pw).unwrap().press_key("Enter").unwrap();
+        let browser = Browser::default()?;
+        let tab = browser.new_tab()?;
+        tab.navigate_to("https://ilias.uni-freiburg.de/shib_login.php?target=")?;
 
+        tab.wait_for_element("input#LoginForm_username")?.click()?;
+        tab.type_str(&creds.name)?;
+
+        tab.wait_for_element("input#LoginForm_password")?.click()?;
+        tab.type_str(&creds.pw)?.press_key("Enter")?;
         // This waits so long, maybe it is optimizable
         match tab.wait_for_element("#headerimage") {
             Ok(_) => {
                 let token = tab
-                    .get_cookies()
-                    .unwrap()
+                    .get_cookies()?
                     .iter()
                     .find(|elem| elem.name == "PHPSESSID")
-                    .unwrap()
+                    .ok_or(anyhow!("No cookie PHPSESSID"))?
                     .value
                     .clone();
 
@@ -217,7 +226,7 @@ impl IliasClient {
         };
 
         if path.exists() {
-            return Ok(())
+            return Ok(());
         }
 
         let extension = path.extension().unwrap();
