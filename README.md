@@ -1,5 +1,5 @@
 # BetterIlias
-A tool for better interaction with the Ilias
+Modern Ui for Ilias with file downloads
 
 ## Features
 * Responsive and modern frontend
