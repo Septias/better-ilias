@@ -214,7 +214,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "urlencoding",
- "winres",
 ]
 
 [[package]]

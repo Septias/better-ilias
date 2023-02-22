@@ -17,12 +17,6 @@ tauri-build = { version = "1.2.1", features = [] }
 default = [ "custom-protocol" ]
 custom-protocol = [ "tauri/custom-protocol" ]
 
-[package.metadata.winres]
-FileDescription = "A program to navigate Ilias and sync files to the local filesystem"
-
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
-
 [dependencies]
 serde_json = "1.0"
 tauri = { version = "1.2", features = [] }
