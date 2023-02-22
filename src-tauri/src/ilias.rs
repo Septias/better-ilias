@@ -10,12 +10,11 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tauri::api::file::read_string;
+use tauri::api::{file::read_string, path::home_dir};
 
 pub const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
 
-pub const ROOT_PATH: &str = "studium/";
 
 type WrappedNode = Arc<Mutex<IlNode>>;
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -98,6 +97,13 @@ fn saves_path() -> Option<PathBuf> {
         path.push("better-ilias/save.json");
         path
     })
+}
+
+pub(crate) fn root_path() -> Option<PathBuf> {
+  home_dir().map(|mut path| {
+    path.push("better-ilias");
+    path
+})
 }
 
 impl IliasTree {

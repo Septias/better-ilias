@@ -33,7 +33,7 @@ function handle_click() {
 
 <template>
   <span
-    v-if="node.visible || edit_visibility" class="p-1 rounded-sm hover:bg-accent text-white select-none"
+    v-if="node.visible || edit_visibility" class="p-1 rounded-sm hover:bg-light_main text-white select-none"
     :class="{ 'text-opacity-25': !node.visible && edit_visibility }" @click="handle_click"
   >
     <svg

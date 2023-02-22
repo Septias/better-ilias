@@ -1,6 +1,6 @@
 [package]
 name = "better-ilias"
-version = "1.0.1"
+version = "1.0.2"
 description = "A program to navigate Ilias and sync files to the local filesystem"
 authors = ["Sebastian Klähn"]
 repository = "https://github.com/Septias/better-ilias"
@@ -25,7 +25,7 @@ winres = "0.1"
 
 [dependencies]
 serde_json = "1.0"
-tauri = { version = "1.2", features = ["api-all", "default"] }
+tauri = { version = "1.2", features = [] }
 itertools = "0.10"
 lazy_static = "1.4"
 open = "3.0"
@@ -37,7 +37,7 @@ urlencoding = "2.1"
 anyhow = "1.0"
 thiserror = "1.0"
 futures = "0.3"
-headless_chrome = {git="https://github.com/Billy-Sheppard/rust-headless-chrome.git", features = ["fetch"] }
+headless_chrome = {git="https://github.com/rust-headless-chrome/rust-headless-chrome.git", features = ["fetch"] }
 failure = "*"
 
 [dependencies.hyper]

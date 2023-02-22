@@ -1,7 +1,7 @@
 {
   "package": {
     "productName": "better-ilias",
-    "version": "1.0.0"
+    "version": "1.0.2"
   },
   "build": {
     "distDir": "../dist",
@@ -23,9 +23,9 @@
       ],
       "resources": [],
       "externalBin": [],
-      "copyright": "",
+      "copyright": "Sebastian Klähn <xxsebastian.klaehnxx@gmail.com>",
       "category": "Utility",
-      "shortDescription": "",
+      "shortDescription": "Better interaction with ILIAS",
       "longDescription": "",
       "deb": {
         "depends": []
@@ -47,27 +47,14 @@
     "updater": {
       "active": false
     },
-    "allowlist": {
-      "all": true,
-      "protocol": {
-        "assetScope": [
-          "$HOME/**"
-        ],
-        "all": true,
-        "asset": true
-      }
-    },
     "windows": [
       {
-        "title": "Manage Wallpapers",
+        "title": "BetterIlias",
         "width": 800,
         "height": 600,
         "resizable": true,
         "fullscreen": false
       }
-    ],
-    "security": {
-      "csp": "default-src 'self'; img-src * asset: https://asset.localhost; font-src *"
-    }
+    ]
   }
 }

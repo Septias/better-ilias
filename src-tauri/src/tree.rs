@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     client::{ClientError, IliasClient},
-    ilias::{IlNode, IlNodeType, ILIAS_ROOT, ROOT_PATH},
+    ilias::{root_path, IlNode, IlNodeType, ILIAS_ROOT},
 };
 
 lazy_static! {
@@ -85,12 +85,12 @@ impl<'a> HypNode<'a> {
 
         let mut chars = title.chars();
         let start = chars.next().unwrap();
-        let rest = chars
-            .filter_map(|character| match character {
-                '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => None,
-                ' ' => Some('_'),
-                c => Some(c),
-            });
+        let rest = chars.filter_map(|character| match character {
+            'a'..='z' => Some(character),
+            'A'..='Z' => Some(character),
+            ' ' => Some('_'),
+            _ => None,
+        });
         path.push(std::iter::once(start).chain(rest).collect::<String>());
 
         let breed = match self.icon_name() {
@@ -259,12 +259,14 @@ pub fn update_root(
                         breed: IlNodeType::Folder {
                             store_files: true,
                             // This is done sooo fishy xD
-                            path: Some(PathBuf::from(ROOT_PATH))
-                                .map(|mut path| {
-                                    path.push(folder);
-                                    path
-                                })
-                                .unwrap(),
+                            path: Some(PathBuf::from(
+                                root_path().expect("should be able to get path"),
+                            ))
+                            .map(|mut path| {
+                                path.push(folder);
+                                path
+                            })
+                            .unwrap(),
                         },
                         title,
                         visible: true,
