@@ -4,8 +4,10 @@ use std::{
 };
 
 use futures::future::join_all;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 
+use log::warn;
 use scraper::{ElementRef, Selector};
 use serde::Serialize;
 use thiserror::Error;
@@ -28,6 +30,18 @@ lazy_static! {
     pub static ref ROOT_IMAGE: Selector = Selector::parse(".icon").unwrap();
     pub static ref ROOT_LINK: Selector = Selector::parse(".il-item-title > a").unwrap();
 
+}
+
+fn clean_name(name: &str) -> String {
+  name.replace('_', " ").split_ascii_whitespace()
+        .map(|str| {
+            str.chars()
+                .filter(|a| a.is_alphanumeric())
+                .collect::<String>()
+        })
+        .filter(|str| !str.is_empty())
+        .join("-")
+        .to_ascii_lowercase()
 }
 
 #[derive(Debug)]
@@ -83,15 +97,7 @@ impl<'a> HypNode<'a> {
     pub fn into_node(self, mut path: PathBuf) -> Option<IlNode> {
         let title = self.title()?;
 
-        let mut chars = title.chars();
-        let start = chars.next().unwrap();
-        let rest = chars.filter_map(|character| match character {
-            'a'..='z' => Some(character),
-            'A'..='Z' => Some(character),
-            ' ' => Some('_'),
-            _ => None,
-        });
-        path.push(std::iter::once(start).chain(rest).collect::<String>());
+        path.push(clean_name(&title));
 
         let breed = match self.icon_name() {
             Some("fold") => Some(IlNodeType::Folder {
@@ -116,7 +122,10 @@ impl<'a> HypNode<'a> {
             }),
             Some("xvid") => Some(IlNodeType::Video),
             Some("exc") => Some(IlNodeType::Exercise),
-            _ => None,
+            a => {
+              warn!("problem with translating icon to breed: {a:?}, at {:?}", self.uri());
+              None
+            },
         };
         Some(IlNode {
             breed: breed?,
@@ -174,7 +183,7 @@ pub fn update_node(
                     } else {
                         if let Some(node) = hypnode.into_node(
                             path.as_ref()
-                                .expect("program logic shoul ensure this")
+                                .expect("program logic should ensure this")
                                 .clone(),
                         ) {
                             let node = Arc::new(Mutex::new(node));
@@ -246,14 +255,6 @@ pub fn update_root(
                     }
 
                     let title = link.inner_html();
-                    let folder = title
-                        .chars()
-                        .filter_map(|character| match character {
-                            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => None,
-                            ' ' => Some('_'),
-                            c => Some(c),
-                        })
-                        .collect::<String>();
                     Arc::new(Mutex::new(IlNode {
                         uri,
                         breed: IlNodeType::Folder {
@@ -263,7 +264,7 @@ pub fn update_root(
                                 root_path().expect("should be able to get path"),
                             ))
                             .map(|mut path| {
-                                path.push(folder);
+                                path.push(clean_name(&title));
                                 path
                             })
                             .unwrap(),
