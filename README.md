@@ -1,14 +1,13 @@
 # BetterIlias
-Modern Ui for Ilias with file downloads
+A Modern UX for Ilias which supports file synchronisation.
 
 ## Features
-* Responsive and modern frontend
-* Synchronization of files to local filesystem for easier access
-* Dark theme by default
+* Responsive and modern frontend.
+* Synchronize all files to the local filesystem for easier access and usability.
+* Dark theme by default.
 
 ## Installation
-The easiest option is to download it from the [releases](https://github.com/Septias/better-ilias/releases)
-The second option is to manually build it as described below.
+The easiest way to install BetterIlias is to download it from the [releases](https://github.com/Septias/better-ilias/releases).
 
 ## Dev
 ### Requirements
@@ -16,7 +15,7 @@ The second option is to manually build it as described below.
 2. [Node](https://nodejs.org/en/)
 
 ### Usage
-You can start the development process with 
+You can start the development process with: 
 ```
 cargo tauri dev
 ```
