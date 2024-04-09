@@ -5,7 +5,7 @@ description = "A program to navigate Ilias and sync files to the local filesyste
 authors = ["Sebastian Klähn"]
 repository = "https://github.com/Septias/better-ilias"
 default-run = "better-ilias"
-edition = "2018"
+edition = "2021"
 build = "src/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -26,13 +26,13 @@ winres = "0.1"
 [dependencies]
 serde_json = "1.0"
 tauri = { version = "1.2", features = ["api-all", "default"] }
-itertools = "0.10"
+itertools = "0.12.1"
 lazy_static = "1.4"
-open = "3.0"
-env_logger = "0.10"
+open = "5.1.2"
+env_logger = "0.11.3"
 log = "0.4"
-hyper-tls = "0.5"
-scraper = "0.14"
+hyper-tls = "0.6.0"
+scraper = "0.19.0"
 urlencoding = "2.1"
 anyhow = "1.0"
 thiserror = "1.0"
@@ -42,7 +42,7 @@ failure = "*"
 
 [dependencies.hyper]
 features = ["client", "http1"]
-version = "0.14"
+version = "1.2.0"
 
 [dependencies.serde]
 features = ["rc", "derive"]
@@ -54,7 +54,7 @@ version = "1.24"
 
 [dependencies.reqwest]
 features = ["cookies", "blocking"]
-version = "0.11"
+version = "0.12.3"
 
 [dependencies.rocket]
 git = "https://github.com/SergioBenitez/Rocket"

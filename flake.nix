@@ -30,7 +30,6 @@
             pkg-config
             dbus
             openssl_3
-            openssl
             glib
             gtk3
             libsoup

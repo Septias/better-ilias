@@ -1,6 +1,6 @@
-import path from 'path'
+import path from 'node:path'
+import dns from 'node:dns'
 import { defineConfig } from 'vite'
-import Preview from 'vite-plugin-vue-component-preview'
 import Vue from '@vitejs/plugin-vue'
 import Pages from 'vite-plugin-pages'
 import generateSitemap from 'vite-ssg-sitemap'
@@ -11,6 +11,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import Inspect from 'vite-plugin-inspect'
 import Unocss from 'unocss/vite'
 
+dns.setDefaultResultOrder('verbatim')
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -19,8 +21,6 @@ export default defineConfig({
   },
 
   plugins: [
-    Preview(),
-
     Vue({
       include: [/\.vue$/, /\.md$/],
       reactivityTransform: true,
@@ -28,7 +28,7 @@ export default defineConfig({
 
     // https://github.com/hannoeru/vite-plugin-pages
     Pages({
-      extensions: ['vue'],
+      extensions: ['vue', 'md'],
     }),
 
     // https://github.com/JohnCampionJr/vite-plugin-vue-layouts
@@ -68,11 +68,13 @@ export default defineConfig({
     // https://github.com/antfu/vite-plugin-pwa
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'safari-pinned-tab.svg'],
+      includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Vitesse',
-        short_name: 'Vitesse',
-        theme_color: '#ffffff',
+        name: 'Diary',
+        short_name: 'Diary',
+        theme_color: '#17191a',
+        background_color: '#181a1b',
+        description: 'A simple diary app created by septias',
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -99,14 +101,7 @@ export default defineConfig({
     Inspect(),
   ],
 
-  // https://github.com/vitest-dev/vitest
-  test: {
-    include: ['test/**/*.test.ts'],
-    environment: 'jsdom',
-    deps: {
-      inline: ['@vue', '@vueuse', 'vue-demi'],
-    },
-  },
+  envPrefix: ['VITE_', 'TAURI_'],
 
   // https://github.com/antfu/vite-ssg
   ssgOptions: {
@@ -116,7 +111,6 @@ export default defineConfig({
   },
 
   ssr: {
-    // TODO: workaround until they support native ESM
     noExternal: ['workbox-window', /vue-i18n/],
   },
 })

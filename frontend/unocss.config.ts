@@ -14,9 +14,15 @@ import extractorPug from '@unocss/extractor-pug'
 export default defineConfig({
   theme: {
     colors: {
-      light_main: 'var(--light-main)',
-      main: 'var(--main)',
-      accent: 'var(--accent)',
+      my: {
+        lightgray: 'var(--my-lightgray)',
+        darkgray: 'var(--my-darkgray)',
+        gray: 'var(--my-gray)',
+        text: 'var(--my-text)',
+        accent: 'var(--my-accent)',
+        accentlight: 'var(--my-accent-light)',
+        heading: 'var(--my-heading)',
+      },
     },
   },
   presets: [
@@ -43,5 +49,4 @@ export default defineConfig({
     transformerDirectives(),
     transformerVariantGroup(),
   ],
-  safelist: 'prose prose-sm m-auto text-left'.split(' '),
 })

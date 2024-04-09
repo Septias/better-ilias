@@ -19,18 +19,14 @@
       "vite/client",
       "vue/ref-macros",
       "vite-plugin-pages/client",
-      "vite-plugin-vue-component-preview/client",
-      "vite-plugin-vue-layouts/client",
-      "vite-plugin-pwa/client"
+      "vite-plugin-vue-layouts/client"
     ],
     "paths": {
       "~/*": ["src/*"]
     }
   },
   "vueCompilerOptions": {
-    "plugins": [
-      "@volar/vue-language-plugin-pug"
-    ]
+    "plugins": ["@vue/language-plugin-pug"]
   },
   "exclude": ["dist", "node_modules"]
 }

@@ -1,21 +1,15 @@
-use headless_chrome::Browser;
-use hyper::{body::HttpBody, client::HttpConnector, Body, Client, Method, Request};
-use hyper_tls::HttpsConnector;
-use log::{info, warn};
-use serde::{Deserialize, Serialize};
-use tauri::api::file::read_string;
-use tokio::{
-    fs::{create_dir_all, File},
-    io::AsyncWriteExt,
-};
-
 use crate::ilias::IlNode;
 use crate::string_serializer;
 use ::tauri::api::path::config_dir;
 use anyhow::{anyhow, Result};
+use headless_chrome::Browser;
+use hyper::{client::conn::http1::SendRequest, Method, Request};
+use hyper_tls::HttpsConnector;
 use lazy_static::lazy_static;
+use log::{info, warn};
 use reqwest::{redirect::Policy, ClientBuilder};
 use scraper::{Html, Selector};
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{self},
     io,
@@ -23,8 +17,14 @@ use std::{
     str::Utf8Error,
     sync::{Arc, Mutex},
 };
+use tauri::api::file::read_string;
 use thiserror::Error;
-type ClientType = Arc<hyper::Client<HttpsConnector<HttpConnector>>>;
+use tokio::io::AsyncWriteExt as _;
+use tokio::net::TcpStream;
+use tokio::{
+    fs::{create_dir_all, File},
+    io::AsyncWriteExt,
+};
 
 mod StringSerilizer {
     use core::fmt::Debug;
@@ -67,7 +67,6 @@ lazy_static! {
 }
 
 pub struct IliasClient {
-    client: ClientType,
     token: String,
 }
 
@@ -102,21 +101,14 @@ fn save_creds(creds: &Credentials) -> Result<()> {
 
 impl IliasClient {
     pub async fn new() -> Result<Self> {
-        let client = Arc::new(
-            Client::builder()
-                .pool_idle_timeout(None)
-                .pool_max_idle_per_host(100)
-                .build::<_, hyper::Body>(HttpsConnector::new()),
-        );
         let creds = load_creds()?;
         let token = Self::acquire_token(&creds).await?;
-        Ok(IliasClient { client, token })
+        Ok(IliasClient { token })
     }
 
     pub async fn with_creds(creds: Credentials) -> Result<Self, ClientError> {
-        let client = Arc::new(Client::builder().build::<_, hyper::Body>(HttpsConnector::new()));
         let token = Self::acquire_token(&creds).await?;
-        Ok(IliasClient { client, token })
+        Ok(IliasClient { token })
     }
 
     pub async fn acquire_token(creds: &Credentials) -> Result<String, ClientError> {
@@ -185,6 +177,7 @@ impl IliasClient {
             .body(Body::empty())
             .unwrap();
 
+            let t = reqwest::Client::new().execute(request);
         let mut resp = self.client.request(req).await?;
         if resp.status() != hyper::StatusCode::OK {
             return Err(ClientError::NoToken);
