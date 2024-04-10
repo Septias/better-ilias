@@ -4,6 +4,8 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.follows = "rust-overlay/flake-utils";
     nixpkgs.follows = "rust-overlay/nixpkgs";
+    unstable.url = "github:nixos/nixpkgs-channels/nixos-unstable";
+    naersk.url = "github:nix-community/naersk";
   };
   outputs = inputs:
     with inputs;
@@ -11,6 +13,9 @@
         system: let
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
+            inherit system;
+          };
+          pkgs_unstable = import unstable {
             inherit system;
           };
           libraries = with pkgs; [
@@ -30,12 +35,12 @@
             pkg-config
             dbus
             openssl_3
+            openssl
             glib
             gtk3
             libsoup
             webkitgtk
             librsvg
-            makeWrapper
           ];
           rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
             extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
@@ -90,12 +95,10 @@
                 cp ${icon} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
                 mkdir -p "$out/share/applications"
                 cp $desktopItem/share/applications/* $out/share/applications
-
-                wrapProgram $out/bin/${name} --prefix PATH : ${pkgs.glib}/bin --set WEBKIT_DISABLE_COMPOSITING_MODE 1
               '';
 
               meta = {  
-                description = "Application to set r/wallpapers from reddit as desktop-background";
+                description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
                 mainProgram = "reddit-wallpapers";
               };
