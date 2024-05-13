@@ -1,10 +1,13 @@
 {
   description = "Application to set wallpapers from reddit as desktop-background";
   inputs = {
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    os_flake.url = "github:septias/nixos-config";
+    nixpkgs.follows = "os_flake/nixpkgs";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.follows = "rust-overlay/flake-utils";
-    nixpkgs.follows = "rust-overlay/nixpkgs";
-    unstable.url = "github:nixos/nixpkgs-channels/nixos-unstable";
     naersk.url = "github:nix-community/naersk";
   };
   outputs = inputs:
@@ -47,7 +50,6 @@
             rustc = rust-toolchain;
           };
           name = "reddit-wallpapers";
-          version = "1.0.0";
           dist = ./dist;
           /* frontend = pkgs_unstable.stdenv.mkDerivation (finalAttrs: {
             inherit version;
