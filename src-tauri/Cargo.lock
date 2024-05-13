@@ -438,8 +438,6 @@ dependencies = [
  "failure",
  "futures",
  "headless_chrome",
- "hyper 1.2.0",
- "hyper-tls 0.6.0",
  "itertools",
  "lazy_static",
  "log",

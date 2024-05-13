@@ -15,9 +15,6 @@
             overlays = [(import rust-overlay)];
             inherit system;
           };
-          pkgs_unstable = import unstable {
-            inherit system;
-          };
           libraries = with pkgs; [
             webkitgtk
             gtk3
@@ -63,11 +60,10 @@
             #nativeBuildInputs = [pkgs.pnpmConfigHook];
           }); */
           desktopItem = pkgs.makeDesktopItem {
-            name = "Reddit Wallpapers";
-            desktopName = "Reddit Wallapapers";
-            icon = "reddit-wallpapers";
-            comment = "Wallpapers";
-            exec = "reddit-wallpapers";
+            name = "Better Ilias";
+            desktopName = "Better Ilias";
+            icon = "better-ilias";
+            exec = "better-ilias";
             categories = [ "Office" ];
           };
           icon = ./src-tauri/icons/icon.png;
@@ -81,9 +77,6 @@
               src = ./src-tauri;
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
-                outputHashes = {
-                  "wallpaper-4.0.0" = "sha256-74S2ThwjF90F274zyppSlFwZeZP/0n2lawEaxQyq3Q0=";
-                };
               };
 
               postPatch = ''
@@ -92,13 +85,13 @@
       
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
-                cp ${icon} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
+                cp ${icon} $out/share/icons/hicolor/128x128/apps/better-ilias.png
                 mkdir -p "$out/share/applications"
                 cp $desktopItem/share/applications/* $out/share/applications
               '';
 
               meta = {  
-                description = "Application to set wallpapers from reddit as desktop-background";
+                description = "Sync Ilias to your local system";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
                 mainProgram = "reddit-wallpapers";
               };

@@ -1,13 +1,11 @@
 use crate::ilias::IlNode;
 use crate::string_serializer;
 use ::tauri::api::path::config_dir;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use headless_chrome::Browser;
-use hyper::{client::conn::http1::SendRequest, Method, Request};
-use hyper_tls::HttpsConnector;
 use lazy_static::lazy_static;
 use log::{info, warn};
-use reqwest::{redirect::Policy, ClientBuilder};
+use reqwest::{redirect::Policy, Client, ClientBuilder, Method, StatusCode};
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -19,25 +17,7 @@ use std::{
 };
 use tauri::api::file::read_string;
 use thiserror::Error;
-use tokio::io::AsyncWriteExt as _;
-use tokio::net::TcpStream;
-use tokio::{
-    fs::{create_dir_all, File},
-    io::AsyncWriteExt,
-};
-
-mod StringSerilizer {
-    use core::fmt::Debug;
-    use serde::ser::{Serialize, Serializer};
-    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: Debug,
-        S: Serializer,
-    {
-        let j = format!("{:?}", value);
-        j.serialize(serializer)
-    }
-}
+use tokio::fs::create_dir_all;
 
 #[derive(Debug, Error, Serialize)]
 pub enum ClientError {
@@ -45,9 +25,6 @@ pub enum ClientError {
     NoToken,
     #[error("Requested file didn't answer with content-type")]
     NoContentType,
-    #[error("Client Error")]
-    #[serde(with = "string_serializer")]
-    Client(#[from] hyper::Error),
     #[error("Parse Error")]
     #[serde(with = "string_serializer")]
     Parser(#[from] Utf8Error),
@@ -68,6 +45,7 @@ lazy_static! {
 
 pub struct IliasClient {
     token: String,
+    client: Client,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -103,12 +81,18 @@ impl IliasClient {
     pub async fn new() -> Result<Self> {
         let creds = load_creds()?;
         let token = Self::acquire_token(&creds).await?;
-        Ok(IliasClient { token })
+        Ok(IliasClient {
+            token,
+            client: Client::new(),
+        })
     }
 
     pub async fn with_creds(creds: Credentials) -> Result<Self, ClientError> {
         let token = Self::acquire_token(&creds).await?;
-        Ok(IliasClient { token })
+        Ok(IliasClient {
+            token,
+            client: Client::new(),
+        })
     }
 
     pub async fn acquire_token(creds: &Credentials) -> Result<String, ClientError> {
@@ -170,37 +154,32 @@ impl IliasClient {
     }
 
     pub async fn get_page(&self, uri: &str) -> Result<Html, ClientError> {
-        let req = Request::builder()
-            .method(Method::GET)
-            .uri("https://ilias.uni-freiburg.de/".to_owned() + uri)
+        let req = self
+            .client
+            .request(
+                Method::GET,
+                "https://ilias.uni-freiburg.de/".to_owned() + uri,
+            )
             .header("cookie", "PHPSESSID=".to_owned() + &*self.token)
-            .body(Body::empty())
-            .unwrap();
+            .build()
+            .context("can't build request")?;
 
-            let t = reqwest::Client::new().execute(request);
-        let mut resp = self.client.request(req).await?;
-        if resp.status() != hyper::StatusCode::OK {
+        let resp = self.client.execute(req).await?;
+        if resp.status() != StatusCode::OK {
             return Err(ClientError::NoToken);
         }
-        let mut bytes = vec![];
-        while let Some(chunk) = resp.body_mut().data().await {
-            let chunk = chunk?;
-            bytes.extend(&chunk[..]);
-        }
-        Ok(Html::parse_document(std::str::from_utf8(&bytes)?))
+        Ok(Html::parse_document(&resp.text().await?))
     }
 
     pub async fn download_file(&self, file_node: Arc<Mutex<IlNode>>) -> Result<()> {
         let req = {
             let node = file_node.lock().unwrap();
-            Request::builder()
-                .method(Method::GET)
-                .uri(&node.uri)
+            self.client
+                .request(Method::GET, &node.uri)
                 .header("cookie", "PHPSESSID=".to_owned() + &self.token)
-                .body(Body::empty())
-                .unwrap()
+                .build()?
         };
-        let mut resp = self.client.request(req).await?;
+        let resp = self.client.execute(req).await?;
 
         let path = {
             let mut node = file_node.lock().unwrap();
@@ -231,12 +210,8 @@ impl IliasClient {
             create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap_or_else(|_| panic!("{:?}", path));
-            let mut file = File::create(&path).await?;
             info!("Downloading file {:?}", path);
-            while let Some(chunk) = resp.body_mut().data().await {
-                let chunk = chunk?;
-                file.write_all(&chunk).await?;
-            }
+            fs::write(path, resp.text().await?)?;
         }
 
         Ok(())
