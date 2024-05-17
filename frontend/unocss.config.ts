@@ -14,15 +14,9 @@ import extractorPug from '@unocss/extractor-pug'
 export default defineConfig({
   theme: {
     colors: {
-      my: {
-        lightgray: 'var(--my-lightgray)',
-        darkgray: 'var(--my-darkgray)',
-        gray: 'var(--my-gray)',
-        text: 'var(--my-text)',
-        accent: 'var(--my-accent)',
-        accentlight: 'var(--my-accent-light)',
-        heading: 'var(--my-heading)',
-      },
+      light_main: "var(--light-main)",
+      main: "var(--main)",
+      accent: "var(--accent)",
     },
   },
   presets: [

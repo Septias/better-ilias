@@ -41,6 +41,7 @@
             libsoup
             webkitgtk
             librsvg
+            makeWrapper
           ];
           rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
             extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
@@ -90,6 +91,8 @@
                 cp ${icon} $out/share/icons/hicolor/128x128/apps/better-ilias.png
                 mkdir -p "$out/share/applications"
                 cp $desktopItem/share/applications/* $out/share/applications
+
+                wrapProgram $out/bin/${name} --prefix PATH : ${pkgs.glib}/bin --set WEBKIT_DISABLE_COMPOSITING_MODE 1
               '';
 
               meta = {  
@@ -107,6 +110,7 @@
             shellHook = ''
               export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath libraries}:$LD_LIBRARY_PATH
               export XDG_DATA_DIRS=${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:$XDG_DATA_DIRS
+              export WEBKIT_DISABLE_COMPOSITING_MODE=1 
             '';
           };
         }

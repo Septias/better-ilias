@@ -35,9 +35,8 @@ const login = async () => {
 </script>
 
 <template>
-  <div class="fixed h-full w-full flex justify-center items-center top-0 bg-main text-white">
-    <form class="bg-main rounded-xl border-2 border-accent p-4 custom_form text-xl" @submit.prevent="login"
-      @click.stop="">
+  <div class="h-screen grid place-content-center bg-main text-white">
+    <form class="rounded-xl border-2 border-accent p-4 custom_form text-xl" @submit.prevent="login">
       <p v-if="wrong" class="text-sm text-accent">
         {{ wrong }}
       </p>
@@ -47,7 +46,7 @@ const login = async () => {
       <input v-model="password" autocomplete="current-password" class="block w-full bg-light_main rounded">
       <button type="submit" class="button px-2 rounded float-right" :class="requesting ? 'bg-gray-600' : 'bg-accent'"
         :disabled="requesting" @click="login">
-        Ok!
+        Login
       </button>
     </form>
   </div>

@@ -1,16 +1,10 @@
-
 :root {
   --light-main: #2d333b;
   --main: #22272e;
   --accent: #be185d;
 }
 
-html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+body {
   background: var(--main);
 }
 

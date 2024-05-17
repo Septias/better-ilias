@@ -4,6 +4,7 @@ import routes from 'virtual:generated-pages'
 import App from './App.vue'
 import type { UserModule } from './types'
 
+import "~/styles/main.css"
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
 
