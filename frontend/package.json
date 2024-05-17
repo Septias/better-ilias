@@ -12,16 +12,15 @@
     "sizecheck": "npx vite-bundle-visualizer"
   },
   "dependencies": {
+    "@iconify-json/ic": "^1.1.17",
     "@nuxt/devalue": "^2.0.2",
     "@tauri-apps/api": "^1.5.6",
     "@unocss/reset": "^0.60.2",
-    "@vue/compiler-sfc": "^3.4.27",
     "@vueuse/core": "^10.9.0",
     "@vueuse/head": "^2.0.0",
     "nprogress": "^1.0.0-1",
     "vue": "^3.4.27",
     "vue-demi": "^0.14.7",
-    "vue-i18n": "^9.13.1",
     "vue-router": "^4.3.2"
   },
   "devDependencies": {
@@ -36,9 +35,7 @@
     "cross-env": "^7.0.3",
     "cypress": "^13.9.0",
     "eslint": "^9.2.0",
-    "eslint-plugin-cypress": "^3.2.0",
     "https-localhost": "^4.7.1",
-    "pnpm": "^9.1.1",
     "pug": "^3.0.2",
     "sass": "^1.77.2",
     "typescript": "^5.4.5",
@@ -49,9 +46,7 @@
     "vite-bundle-visualizer": "^1.2.1",
     "vite-plugin-inspect": "^0.8.4",
     "vite-plugin-pages": "^0.32.1",
-    "vite-plugin-pwa": "^0.20.0",
     "vite-plugin-vue-component-preview": "^1.1.6",
-    "vite-plugin-vue-layouts": "^0.11.0",
     "vite-ssg": "^0.23.7",
     "vite-ssg-sitemap": "^0.6.1",
     "vitest": "^1.6.0",

@@ -152,7 +152,6 @@ impl IliasTree {
     }
 
     pub fn save(&self) -> anyhow::Result<()> {
-        return Ok(());
         let data = self.tree.lock().unwrap();
         let path = saves_path().ok_or(anyhow::anyhow!("can't create path"))?;
         if let Err(e) = fs::write(&path, serde_json::to_string(&*data).unwrap()) {
