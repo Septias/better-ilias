@@ -13,7 +13,7 @@ use std::{
 use tauri::api::file::read_string;
 
 pub const ILIAS_ROOT: &str =
-    "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=kt&baseClass=ilmembershipoverviewgui";
+    "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=ku&baseClass=ilmembershipoverviewgui";
 
 pub const ROOT_PATH: &str = "studium/";
 
@@ -152,6 +152,7 @@ impl IliasTree {
     }
 
     pub fn save(&self) -> anyhow::Result<()> {
+        return Ok(());
         let data = self.tree.lock().unwrap();
         let path = saves_path().ok_or(anyhow::anyhow!("can't create path"))?;
         if let Err(e) = fs::write(&path, serde_json::to_string(&*data).unwrap()) {
