@@ -1,9 +1,10 @@
 {
   "type": "module",
   "private": true,
+  "version": "1.0.1",
   "packageManager": "pnpm@9.1.1",
   "scripts": {
-    "build": "vite-ssg build",
+    "build": "vite build",
     "dev": "vite --port 3333",
     "lint": "eslint .",
     "preview": "vite preview",

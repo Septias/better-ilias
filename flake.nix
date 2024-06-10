@@ -3,6 +3,7 @@
   inputs = {
     os_flake.url = "github:septias/nixos-config";
     nixpkgs.follows = "os_flake/nixpkgs";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -16,6 +17,9 @@
         system: let
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
+            inherit system;
+          };
+          unstable = import nixpkgs-unstable {
             inherit system;
           };
           libraries = with pkgs; [
@@ -50,18 +54,26 @@
             cargo = rust-toolchain;
             rustc = rust-toolchain;
           };
-          name = "reddit-wallpapers";
-          dist = ./dist;
-          /* frontend = pkgs_unstable.stdenv.mkDerivation (finalAttrs: {
+          name = "better-ilias";
+          version = "1.0.1";
+          frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
             inherit version;
-            pname = name;
-            src = ./.;
-            pnpmDeps = pkgs_unstable.fetchPnpmDeps {
-              inherit finalAttrs src pname;
-              hash = pkgs.fakeHash;
+            pname = "better-ilias-frontend";
+            src = pkgs.lib.cleanSource ./frontend;
+            nativeBuildInputs = with unstable; [
+              nodejs
+              unstable.pnpm.configHook
+            ];
+            pnpmDeps = unstable.pnpm.fetchDeps {
+              inherit (finalAttrs) pname version src;
+              hash = "sha256-fQ+6cYSNHX8U/hdWBNK2bKz8UvurHZrgrGeYSnNWb4k=";
             };
-            #nativeBuildInputs = [pkgs.pnpmConfigHook];
-          }); */
+
+            installPhase = ''
+              pnpm build
+              cp -r dist $out
+            '';
+          });
           desktopItem = pkgs.makeDesktopItem {
             name = "Better Ilias";
             desktopName = "Better Ilias";
@@ -75,7 +87,7 @@
           formatter = pkgs.alejandra;
           packages = {
             ${name} = rustPlatform.buildRustPackage rec {
-              inherit buildInputs name desktopItem;
+              inherit buildInputs name desktopItem version;
               nativeBuildInputs = buildInputs;
               src = ./src-tauri;
               cargoLock = {
@@ -83,7 +95,7 @@
               };
 
               postPatch = ''
-                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${dist}",'
+                substituteInPlace tauri.conf.json --replace-fail '"distDir": "../frontend/dist",' '"distDir": "${frontend}",'
               '';
       
               postInstall = ''
