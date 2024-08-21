@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="44.782055mm"
+   height="44.782051mm"
+   viewBox="0 0 44.782055 44.782051"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25)"
+   sodipodi:docname="drawing.svg"
+   inkscape:export-filename="512x512.png"
+   inkscape:export-xdpi="290.40204"
+   inkscape:export-ydpi="290.40204"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.4342733"
+     inkscape:cx="19.87069"
+     inkscape:cy="100.05067"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <inkscape:path-effect
+       effect="fillet_chamfer"
+       id="path-effect2"
+       is_visible="true"
+       lpeversion="1"
+       nodesatellites_param="F,0,0,1,0,11.83744,0,1 @ F,0,1,1,0,11.83744,0,1 @ F,0,1,1,0,11.83744,0,1 @ F,0,1,1,0,11.83744,0,1"
+       radius="0"
+       unit="px"
+       method="auto"
+       mode="F"
+       chamfer_steps="1"
+       flexible="false"
+       use_knot_distance="true"
+       apply_no_radius="true"
+       apply_with_radius="true"
+       only_selected="false"
+       hide_knots="false" />
+    <linearGradient
+       id="swatch1"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="0"
+         id="stop1" />
+    </linearGradient>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-72.287605,-82.62664)">
+    <path
+       id="rect2"
+       style="fill:#22272e;stroke-width:0.637"
+       d="m 84.125045,82.62664 h 21.107175 a 11.83744,11.83744 45 0 1 11.83744,11.83744 v 21.10717 a 11.83744,11.83744 135 0 1 -11.83744,11.83744 l -21.107175,0 A 11.83744,11.83744 45 0 1 72.287605,115.57125 V 94.46408 a 11.83744,11.83744 135 0 1 11.83744,-11.83744 z"
+       inkscape:path-effect="#path-effect2"
+       inkscape:original-d="m 72.287605,82.62664 h 44.782055 v 44.78205 H 72.287605 Z" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.1111px;line-height:1.7;font-family:Rubik;-inkscape-font-specification:Rubik;letter-spacing:0px;word-spacing:0px;fill:#be185d;fill-opacity:1;stroke:none;stroke-width:0.637;stroke-opacity:1"
+       x="75.955528"
+       y="111.25501"
+       id="text1"><tspan
+         id="tspan1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.1111px;font-family:Rubik;-inkscape-font-specification:Rubik;fill:#be185d;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.637;stroke-opacity:1"
+         x="75.955528"
+         y="111.25501"
+         sodipodi:role="line">ILIAS</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.1111px;line-height:1.7;font-family:Rubik;-inkscape-font-specification:Rubik;letter-spacing:0px;word-spacing:0px;fill:#be185d;stroke-width:0.637"
+       x="107.11214"
+       y="102.78059"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="stroke-width:0.637"
+         x="107.11214"
+         y="102.78059">+</tspan></text>
+  </g>
+</svg>

@@ -82,6 +82,7 @@
             categories = [ "Office" ];
           };
           icon = ./src-tauri/icons/icon.png;
+          icon-small = ./src-tauri/icons/128x128.png;
         
         in rec {
           formatter = pkgs.alejandra;
@@ -100,7 +101,10 @@
       
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
-                cp ${icon} $out/share/icons/hicolor/128x128/apps/better-ilias.png
+                mkdir -p $out/share/icons/hicolor/512x512/apps
+                cp ${icon-small} $out/share/icons/hicolor/128x128/apps/better-ilias.png
+                cp ${icon} $out/share/icons/hicolor/512x512/apps/better-ilias.png
+
                 mkdir -p "$out/share/applications"
                 cp $desktopItem/share/applications/* $out/share/applications
 
