@@ -2,7 +2,7 @@ use crate::{
     client::{ClientError, Credentials, IliasClient},
     tree::{update_root, TreeError},
 };
-use ::tauri::api::path::cache_dir;
+use dirs::cache_dir;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,7 +10,6 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tauri::api::file::read_string;
 
 pub const ILIAS_ROOT: &str =
     "ilias.php?cmdClass=ilmembershipoverviewgui&cmdNode=ku&baseClass=ilmembershipoverviewgui";
@@ -104,7 +103,7 @@ impl IliasTree {
     pub async fn new() -> Self {
         Self {
             tree: saves_path()
-                .map(|path| read_string(path).ok())
+                .map(|path| fs::read_to_string(path).ok())
                 .flatten()
                 .map(|data| Arc::new(Mutex::new(serde_json::from_str::<IlNode>(&data).unwrap())))
                 .unwrap_or_default(),

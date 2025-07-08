@@ -9,28 +9,29 @@ edition = "2021"
 build = "src/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "tst_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "1.2.1", features = [] }
-
-[package.metadata.winres]
-FileDescription = "A program to navigate Ilias and sync files to the local filesystem"
-
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+tauri-build = { version = "2.3.0", features = [] }
 
 [dependencies]
 serde_json = "1.0"
-tauri = { version = "1.6.1", features = ["api-all", "default"] }
-itertools = "0.13.0"
+dirs = "*"
+tauri = { version = "2.6.2", features = [] }
+itertools = "0.14.0"
 lazy_static = "1.4"
-open = "5.1.2"
-env_logger = "0.11.3"
+open = "5.3.2"
+env_logger = "0.11.8"
 log = "0.4"
-scraper = "0.19.0"
+scraper = "0.23.1"
 urlencoding = "2.1"
-anyhow = "1.0"
-thiserror = "1.0"
+anyhow = "1.0.98"
+thiserror = "2.0.12"
 futures = "0.3"
 headless_chrome = { version="*", features = ["fetch"] }
 
@@ -40,16 +41,8 @@ version = "1.0"
 
 [dependencies.tokio]
 features = ["fs", "macros"]
-version = "1.37.0"
+version = "1.46"
 
 [dependencies.reqwest]
 features = ["cookies", "blocking"]
 version = "0.12"
-
-[features]
-# by default Tauri runs in production mode
-# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
-default = ["custom-protocol"]
-# this feature is used used for production builds where `devPath` points to the filesystem
-# DO NOT remove this
-custom-protocol = ["tauri/custom-protocol"]

@@ -1,7 +1,7 @@
 use crate::ilias::IlNode;
 use crate::string_serializer;
-use ::tauri::api::path::config_dir;
 use anyhow::{anyhow, Context, Result};
+use dirs::config_dir;
 use headless_chrome::Browser;
 use lazy_static::lazy_static;
 use log::{info, warn};
@@ -15,7 +15,6 @@ use std::{
     str::Utf8Error,
     sync::{Arc, Mutex},
 };
-use tauri::api::file::read_string;
 use thiserror::Error;
 use tokio::fs::create_dir_all;
 
@@ -63,7 +62,9 @@ fn creds_path() -> Option<PathBuf> {
 
 fn load_creds() -> Result<Credentials> {
     let path = creds_path().ok_or(anyhow!("can't create path"))?;
-    Ok(serde_json::from_str::<Credentials>(&read_string(path)?)?)
+    Ok(serde_json::from_str::<Credentials>(&fs::read_to_string(
+        path,
+    )?)?)
 }
 
 fn save_creds(creds: &Credentials) -> Result<()> {

@@ -1,12 +1,3 @@
-#[cfg(windows)]
-extern crate winres;
-
-#[cfg(windows)]
 fn main() {
-    let mut res = winres::WindowsResource::new();
-    res.set_icon("./data/better_ilias.ico");
-    res.compile().unwrap();
+    tauri_build::build()
 }
-
-#[cfg(unix)]
-fn main() {}
